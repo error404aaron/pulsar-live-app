@@ -963,6 +963,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
 
   <h3>Offline use</h3>
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
+  <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
   <h3>About sound</h3>
@@ -3849,6 +3850,7 @@ var PulsarMotion = (function () {
      ===================================================================== */
   var offlineNote = $('offlineNote'), updateBtn = $('updateBtn');
   var updateBar = $('updateBar'), updateNow = $('updateNow'), updateLater = $('updateLater');
+  var buildLine = $('buildLine');
   var offlineState = 'off', waitingWorker = null, updateRequested = false;
   var OFFLINE_TEXT = {
     off: 'Offline use needs the page served over HTTPS, or from localhost. Opened from a file or plain HTTP, PULSAR LIVE works as usual but isn’t saved for offline use.',
@@ -3865,6 +3867,22 @@ var PulsarMotion = (function () {
   function updateOfflineUI() {
     offlineNote.textContent = OFFLINE_TEXT[offlineState];
     updateBtn.hidden = offlineState !== 'update';
+  }
+  // Asks the worker serving this page for its build, so an update or a
+  // rollback can be confirmed on the device. Older builds don't answer, and
+  // the line stays hidden.
+  function showBuild(worker) {
+    if (!worker || typeof MessageChannel === 'undefined') return;
+    try {
+      var ch = new MessageChannel();
+      ch.port1.onmessage = function (e) {
+        var b = e.data && e.data.build;
+        if (typeof b !== 'string' || !/^[0-9a-f]{6,64}$/.test(b)) return;
+        buildLine.textContent = 'Build ' + b.slice(0, 7);
+        buildLine.hidden = false;
+      };
+      worker.postMessage({ type: 'GET_BUILD' }, [ch.port2]);
+    } catch (e) {}
   }
   function offerUpdate(worker) {
     waitingWorker = worker;
@@ -3914,7 +3932,10 @@ var PulsarMotion = (function () {
           else if (nw.state === 'redundant' && offlineState === 'setup') { offlineState = 'error'; updateOfflineUI(); }
         });
       });
-      sw.ready.then(function () { if (offlineState === 'setup') { offlineState = 'ready'; updateOfflineUI(); } });
+      sw.ready.then(function (r) {
+        if (offlineState === 'setup') { offlineState = 'ready'; updateOfflineUI(); }
+        showBuild(sw.controller || r.active);
+      });
     }, function () { offlineState = 'error'; updateOfflineUI(); });
   }
   updateNow.addEventListener('click', function () { haptic('ui'); applyUpdate(); });
