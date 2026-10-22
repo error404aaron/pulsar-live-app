@@ -936,7 +936,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   </label>
   <p class="note">How hard dragging fingers push, pull and swirl particles, in every mode. 0% disables drag forces. Geometry twist and pinch remain active, and taps still send shockwaves.</p>
   <div class="switch-row">
-    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. After one finger it flings the field the way you were moving; after two, it bursts at both fingertips, joined between them. Both take the style of the current mode. Scales with touch strength.</small></span>
+    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. After one finger it flings the field the way you were moving; after two, it bursts at both fingertips, joined by an arc. Scales with touch strength.</small></span>
     <button class="switch" id="releasePulse" type="button" role="switch" aria-checked="false" aria-label="Release pulse"></button>
   </div>
 
@@ -989,7 +989,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.9</p>
+  <p class="perf" id="versionLine">Version 0.9.8</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -1907,11 +1907,6 @@ var PulsarMotion = (function () {
   var flingX = 0, flingY = 0, flingDX = 0, flingDY = 0, flingLen = 0, flingS = 0, flingL = 0;
   var twAX = 0, twAY = 0, twBX = 0, twBY = 0, twS = 0, twL = 0, twArc = false;
   var twOff = new Float32Array(9);
-  // Each effect takes the look of the mode it started in: its path, a random
-  // side (curl direction), rotation, polygon size (Symmetry) and phase.
-  var flMode = 'vortex', flSide = 1, flAng = 0, flRot = 0, flN = 6;
-  var twMode = 'vortex', twRot = 0, twN = 6, twSeed = 0;
-  var ptX = 0, ptY = 0;                 // scratch point from flingAt()
   var aw = new Uint8Array(SWMAX);
   var awN = 0, swNext = 0, shockBand = 1, shockBandIn = 1;
 
@@ -2504,8 +2499,8 @@ var PulsarMotion = (function () {
     swc[k] = (Math.random() * STEPS) | 0;
   }
   function updateShockwaves(dt) {
-    if (flingL > 0) flingL = Math.max(0, flingL - dt / 0.7);
-    if (twL > 0) twL = Math.max(0, twL - dt / 0.8);
+    if (flingL > 0) flingL = Math.max(0, flingL - dt / 0.55);
+    if (twL > 0) twL = Math.max(0, twL - dt / 0.6);
     awN = 0;
     shockBand = S * 0.085;
     shockBandIn = shockBand * 1.6;
@@ -2868,216 +2863,46 @@ var PulsarMotion = (function () {
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  // Release effects, drawn in the style of the mode they started in. One
-  // finger (fling) is a single trail travelling the flick direction; two
-  // (twin) is a pair of effects at the fingertips with a link between them.
-  // Nothing here allocates: paths are evaluated point by point.
-  function symSides() { var n = Math.round(settings.symmetry); return n < 3 ? 3 : n > 8 ? 8 : n; }
-  function easeOut3(t) { return 1 - (1 - t) * (1 - t) * (1 - t); }
-  function polyPath(x, y, n, r, rot) {
-    ctx.beginPath();
-    for (var j = 0; j <= n; j++) {
-      var a = rot + j * TAU / n;
-      if (j) ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); else ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-    }
-    ctx.stroke();
-  }
-  function starPath(x, y, n, ro, ri, rot) {
-    ctx.beginPath();
-    for (var j = 0; j <= n * 2; j++) {
-      var a = rot + j * Math.PI / n, r = j & 1 ? ri : ro;
-      if (j) ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); else ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-    }
-    ctx.stroke();
-  }
-  // The fling's path at u (0 at the lift point, 1 at its end), into ptX/ptY.
-  function flingAt(u) {
-    var L = flingLen;
-    if (flMode === 'vortex') {                 // a spiral arm that curls as it goes
-      var ang = flAng + flSide * 2.4 * u * u, r = L * u;
-      ptX = flingX + Math.cos(ang) * r; ptY = flingY + Math.sin(ang) * r;
-    } else if (flMode === 'plasma') {          // a flare: one arching lobe
-      var ex = flingX + flingDX * L, ey = flingY + flingDY * L;
-      var cx = flingX + flingDX * L * 0.5 - flingDY * flSide * L * 0.45;
-      var cy = flingY + flingDY * L * 0.5 + flingDX * flSide * L * 0.45;
-      var p = (1 - u) * (1 - u), m = 2 * u * (1 - u), q = u * u;
-      ptX = p * flingX + m * cx + q * ex; ptY = p * flingY + m * cy + q * ey;
-    } else if (flMode === 'fluid') {           // a gently weaving wake
-      var w = Math.sin(u * TAU * 1.5) * L * 0.06 * flSide;
-      ptX = flingX + flingDX * L * u - flingDY * w; ptY = flingY + flingDY * L * u + flingDX * w;
-    } else {                                   // geometry: straight, the shape carries the style
-      ptX = flingX + flingDX * L * u; ptY = flingY + flingDY * L * u;
-    }
-  }
+  // The fling streak: a head that eases out along the release direction,
+  // with a fading tail behind it (a wide faint pass, then a bright core).
   function drawFling() {
-    var t = 1 - flingL, e = easeOut3(t), a = flingL * flingS, sc = sizeScale, j, u;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (flMode === 'geometry') {
-      // A spinning polygon thrown along the flick, with two fading ghosts behind.
-      ctx.strokeStyle = palCSS[STEPS - 2];
-      for (j = 2; j >= 0; j--) {
-        u = e - j * 0.12;
-        if (u < 0) continue;
-        flingAt(u);
-        ctx.globalAlpha = clamp(a * (1 - j * 0.32), 0, 1);
-        ctx.lineWidth = (1.2 + 2.4 * flingL) * sc;
-        polyPath(ptX, ptY, flN, S * (0.025 + 0.075 * u), flRot + flSide * u * 5);
-      }
-    } else if (flMode === 'fluid') {
-      // A faint wake, and ripple rings dropped where the head passes.
-      ctx.strokeStyle = palCSS[STEPS - 3];
-      ctx.globalAlpha = clamp(a * 0.35, 0, 1);
-      ctx.lineWidth = (1 + 1.6 * flingL) * sc;
-      ctx.beginPath();
-      for (j = 0; j <= 18; j++) { flingAt(e * j / 18); if (j) ctx.lineTo(ptX, ptY); else ctx.moveTo(ptX, ptY); }
-      ctx.stroke();
-      ctx.strokeStyle = palCSS[STEPS - 2];
-      for (j = 1; j <= 5; j++) {
-        u = j / 6;
-        if (e < u) break;
-        var age = (t - (1 - Math.cbrt(1 - u))) / 0.55;
-        if (age < 0) age = 0; else if (age > 1) continue;
-        flingAt(u);
-        ctx.globalAlpha = clamp(flingS * (1 - age) * 0.9, 0, 1);
-        ctx.lineWidth = (0.8 + 2 * (1 - age)) * sc;
-        ctx.beginPath(); ctx.arc(ptX, ptY, S * (0.012 + 0.075 * age), 0, TAU); ctx.stroke();
-      }
-    } else {
-      // Vortex and Plasma: a curved trail that thickens and brightens toward
-      // its head. Plasma's flickers along its length.
-      var u0 = e - (flMode === 'plasma' ? 0.75 : 0.55); if (u0 < 0) u0 = 0;
-      var px0 = 0, py0 = 0, wob = flMode === 'plasma' ? S * 0.007 : 0;
-      ctx.strokeStyle = palCSS[STEPS - 2];
-      for (j = 0; j <= 16; j++) {
-        u = u0 + (e - u0) * j / 16;
-        flingAt(u);
-        if (wob) { var o = Math.sin(u * 22 + t * 34) * wob; ptX -= flingDY * o; ptY += flingDX * o; }
-        if (j) {
-          var k = j / 16;
-          ctx.globalAlpha = clamp(a * k, 0, 1);
-          ctx.lineWidth = (0.8 + 4.2 * k * flingL) * sc;
-          ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(ptX, ptY); ctx.stroke();
-        }
-        px0 = ptX; py0 = ptY;
-      }
-    }
-    if (flMode !== 'geometry') {
-      flingAt(e);
-      var hr = S * (0.03 + 0.03 * flingL);
-      ctx.globalAlpha = clamp(a, 0, 1);
-      ctx.drawImage(coreSprite, ptX - hr, ptY - hr, hr + hr, hr + hr);
-    }
-    ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
+    var t = 1 - flingL, e = 1 - (1 - t) * (1 - t) * (1 - t);
+    var hx = flingX + flingDX * flingLen * e, hy = flingY + flingDY * flingLen * e;
+    var tb = e - 0.5 < 0 ? 0 : e - 0.5;
+    var tx = flingX + flingDX * flingLen * tb, ty = flingY + flingDY * flingLen * tb;
+    var a = flingL * flingS, w = (1.4 + 3.6 * flingL) * sizeScale;
+    ctx.strokeStyle = palCSS[STEPS - 2];
+    ctx.globalAlpha = clamp(a * 0.3, 0, 1);
+    ctx.lineWidth = w * 3.2;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.globalAlpha = clamp(a, 0, 1);
+    ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    var hr = S * (0.035 + 0.03 * flingL);
+    ctx.drawImage(coreSprite, hx - hr, hy - hr, hr + hr, hr + hr);
   }
+  // The twin burst: a flash at each lift point and, when they're apart, a
+  // jagged arc between them (fixed offsets per burst, so it doesn't flicker).
   function drawTwin() {
-    var t = 1 - twL, e = easeOut3(t), a = twL * twS, sc = sizeScale, j, f, x, y;
-    var dx = twBX - twAX, dy = twBY - twAY, d = Math.sqrt(dx * dx + dy * dy);
-    if (d < 1) d = 1;
-    var nx = -dy / d, ny = dx / d;
-    var fr = S * (0.05 + 0.14 * (1 - twL));
-    ctx.globalAlpha = clamp(twL * twL * twS * (twMode === 'plasma' ? 1 : 0.7), 0, 1);
+    var a = twL * twS, fr = S * (0.06 + 0.2 * (1 - twL));
+    ctx.globalAlpha = clamp(twL * twL * twS, 0, 1);
     ctx.drawImage(coreSprite, twAX - fr, twAY - fr, fr + fr, fr + fr);
     ctx.drawImage(coreSprite, twBX - fr, twBY - fr, fr + fr, fr + fr);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (!twArc) return;
+    var dx = twBX - twAX, dy = twBY - twAY, d = Math.sqrt(dx * dx + dy * dy);
+    var nx = -dy / d, ny = dx / d, amp = d * 0.07 * (0.5 + 0.5 * twL);
     ctx.strokeStyle = palCSS[STEPS - 1];
-    if (twMode === 'vortex') {
-      // Two counter-rotating whirlpools of three arms, joined by an S-curve.
-      var R = S * (0.04 + 0.11 * e);
-      ctx.globalAlpha = clamp(a, 0, 1);
-      ctx.lineWidth = (1 + 2 * twL) * sc;
-      for (var end = 0; end < 2; end++) {
-        var cx = end ? twBX : twAX, cy = end ? twBY : twAY, sg = end ? -1 : 1;
-        for (var arm = 0; arm < 3; arm++) {
-          ctx.beginPath();
-          for (j = 0; j <= 10; j++) {
-            var r = R * j / 10, ang = twRot + sg * (t * 7 + 2.6 * j / 10) + arm * TAU / 3;
-            x = cx + Math.cos(ang) * r; y = cy + Math.sin(ang) * r;
-            if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-          }
-          ctx.stroke();
-        }
+    for (var pass = 0; pass < 2; pass++) {
+      ctx.globalAlpha = clamp(pass ? a : a * 0.3, 0, 1);
+      ctx.lineWidth = (pass ? 1.6 + 2.4 * twL : 6 + 6 * twL) * sizeScale;
+      ctx.beginPath();
+      for (var j = 0; j <= 8; j++) {
+        var f = j / 8, o = twOff[j] * amp;
+        var x = twAX + dx * f + nx * o, y = twAY + dy * f + ny * o;
+        if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
-      if (twArc) {
-        ctx.globalAlpha = clamp(a * 0.8, 0, 1);
-        ctx.beginPath();
-        for (j = 0; j <= 20; j++) {
-          f = j / 20;
-          var bend = Math.sin(f * TAU) * d * 0.18;           // an S: out one side, then the other
-          x = twAX + dx * f + nx * bend; y = twAY + dy * f + ny * bend;
-          if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-        }
-        ctx.stroke();
-      }
-    } else if (twMode === 'fluid') {
-      // Ripples spreading from both fingertips into each other, and a wave
-      // flowing between them.
-      for (var e2 = 0; e2 < 2; e2++) {
-        var rx = e2 ? twBX : twAX, ry = e2 ? twBY : twAY;
-        for (var k = 0; k < 3; k++) {
-          var age = (t - k * 0.15) / 0.75;
-          if (age <= 0 || age >= 1) continue;
-          ctx.globalAlpha = clamp(twS * (1 - age), 0, 1);
-          ctx.lineWidth = (0.8 + 2.2 * (1 - age)) * sc;
-          ctx.beginPath(); ctx.arc(rx, ry, S * (0.02 + 0.22 * age), 0, TAU); ctx.stroke();
-        }
-      }
-      if (twArc) {
-        ctx.globalAlpha = clamp(a, 0, 1);
-        ctx.lineWidth = (1.2 + 2 * twL) * sc;
-        ctx.beginPath();
-        for (j = 0; j <= 24; j++) {
-          f = j / 24;
-          var off = Math.sin(f * TAU * 2.5 - t * TAU * 1.5) * d * 0.07 * Math.sin(f * Math.PI);
-          x = twAX + dx * f + nx * off; y = twAY + dy * f + ny * off;
-          if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-        }
-        ctx.stroke();
-      }
-    } else if (twMode === 'geometry') {
-      // A kaleidoscope star at each fingertip (Symmetry points), turning
-      // opposite ways, joined by a mirrored zigzag.
-      var ro = S * (0.035 + 0.11 * e);
-      ctx.globalAlpha = clamp(a, 0, 1);
-      ctx.lineWidth = (1 + 2 * twL) * sc;
-      starPath(twAX, twAY, twN, ro, ro * 0.45, twRot + t * 2.5);
-      starPath(twBX, twBY, twN, ro, ro * 0.45, -twRot - t * 2.5);
-      if (twArc) {
-        var segs = Math.round(d / (S * 0.05)); segs = segs < 4 ? 4 : segs > 16 ? 16 : segs;
-        var amp = Math.min(S * 0.03, d * 0.08) * (0.6 + 0.4 * twL);
-        ctx.globalAlpha = clamp(a * 0.85, 0, 1);
-        ctx.lineWidth = (0.8 + 1.4 * twL) * sc;
-        for (var mir = -1; mir <= 1; mir += 2) {
-          ctx.beginPath();
-          for (j = 0; j <= segs; j++) {
-            f = j / segs;
-            var zo = j === 0 || j === segs ? 0 : (j & 1 ? amp : -amp) * mir;
-            x = twAX + dx * f + nx * zo; y = twAY + dy * f + ny * zo;
-            if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-          }
-          ctx.stroke();
-        }
-      }
-    } else {
-      // Plasma: two crackling, wobbling filaments between the fingertips
-      // (the mode's eruptions fire at both ends).
-      if (!twArc) { ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; return; }
-      for (var st = 0; st < 2; st++) {
-        for (var pass = 0; pass < 2; pass++) {
-          ctx.globalAlpha = clamp(pass ? a : a * 0.3, 0, 1);
-          ctx.lineWidth = (pass ? 1.2 + 2 * twL : 5 + 5 * twL) * sc * (st ? 0.6 : 1);
-          ctx.beginPath();
-          for (j = 0; j <= 24; j++) {
-            f = j / 24;
-            var w = Math.sin(f * Math.PI) * d * 0.09 *
-              (Math.sin(f * 9 + t * 26 + twSeed + st * 2) * 0.6 + Math.sin(f * 23 - t * 41 + st) * 0.4);
-            x = twAX + dx * f + nx * w; y = twAY + dy * f + ny * w;
-            if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-          }
-          ctx.stroke();
-        }
-      }
+      ctx.stroke();
     }
-    ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
   }
 
   function stepPalette(dt) {
@@ -3891,8 +3716,6 @@ var PulsarMotion = (function () {
     }
     flingX = x; flingY = y; flingDX = dx0; flingDY = dy0;
     flingLen = S * (0.2 + 0.55 * q); flingS = g * (0.5 + 0.5 * q); flingL = 1;
-    flMode = settings.mode; flSide = Math.random() < 0.5 ? -1 : 1; flAng = Math.atan2(dy0, dx0);
-    flRot = Math.random() * TAU; flN = symSides();
     haptic('tap');
   }
   function twinBurst(rel, s) {
@@ -3913,7 +3736,6 @@ var PulsarMotion = (function () {
     }
     if (modeObj.onTap) { modeObj.onTap(ax, ay, g); modeObj.onTap(bx, by, g); }
     twAX = ax; twAY = ay; twBX = bx; twBY = by; twS = g; twL = 1;
-    twMode = settings.mode; twRot = Math.random() * TAU; twN = symSides(); twSeed = Math.random() * TAU;
     twArc = ab2 > S * S * 0.0036;                                     // farther apart than 6% of the screen
     for (var j = 0; j < 9; j++) twOff[j] = j === 0 || j === 8 ? 0 : Math.random() * 2 - 1;
     haptic('burst');
