@@ -631,6 +631,22 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 10px;
 }
 .seg-wide button { min-width: 0; padding: 0 6px; }
+/* Opt-in touch log (?debug=touch), for diagnosing gestures on a device. */
+.touch-log {
+  position: fixed;
+  left: calc(env(safe-area-inset-left, 0px) + 8px);
+  top: calc(env(safe-area-inset-top, 0px) + 72px);
+  z-index: 40;
+  max-width: calc(100% - 16px);
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #c8ffd8;
+  font: 11px/1.35 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
 .haptic-hidden {
   position: fixed;
   left: 0;
@@ -973,7 +989,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.2</p>
+  <p class="perf" id="versionLine">Version 0.9.3</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -3645,6 +3661,35 @@ var PulsarMotion = (function () {
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('lostpointercapture', endPointer);
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  // Opt-in touch log for diagnosing gestures on a real device: open the page
+  // with ?debug=touch. It shows the raw pointer events (capturing, before the
+  // handlers above run) and the gesture's decisions. Off otherwise.
+  if (/(?:^|[?&])debug=touch(?:&|$)/.test(location.search)) (function () {
+    var pre = document.createElement('pre'), lines = [], t0 = performance.now(), moved = {};
+    pre.className = 'touch-log';
+    document.body.appendChild(pre);
+    function log(text) {
+      lines.push(((performance.now() - t0) / 1000).toFixed(2) + ' ' + text);
+      if (lines.length > 16) lines.shift();
+      pre.textContent = lines.join('\n');
+    }
+    ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'gotpointercapture', 'lostpointercapture'].forEach(function (t) {
+      canvas.addEventListener(t, function (e) {
+        if (t === 'pointermove') { if (moved[e.pointerId]) return; moved[e.pointerId] = 1; }
+        if (t === 'pointerdown') moved[e.pointerId] = 0;
+        log(t.replace('pointer', 'p:') + ' id=' + e.pointerId + ' ' + e.pointerType + ' tracked=' + pointerList.length + ' gesture=' + gesture.active());
+      }, true);
+    });
+    ['touchcancel', 'gesturestart'].forEach(function (t) {
+      document.addEventListener(t, function () { log(t); }, true);
+    });
+    var up = gesture.up, cancel = gesture.cancel, interrupt = gesture.interrupt, reset = gesture.reset;
+    gesture.up = function (id, tap) { var r = up(id, tap); log('  gesture.up id=' + id + ' tap=' + tap + ' -> ' + (r ? 'PULSE' : 'no pulse') + (r && !(PulsarTouch.releaseStrength(settings) > 0) ? ' (release pulse off)' : '')); return r; };
+    gesture.cancel = function (id) { log('  gesture.cancel id=' + id + ' (interrupts if a finger remains)'); return cancel(id); };
+    gesture.interrupt = function () { if (gesture.active()) log('  gesture.interrupt (UI took over)'); return interrupt(); };
+    gesture.reset = function () { log('  gesture.reset'); return reset(); };
+    log('touch log on; release pulse ' + (settings.releasePulse ? 'on' : 'OFF') + ', touch strength ' + Math.round(settings.touchStrength * 100) + '%');
+  })();
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
     document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
   });
