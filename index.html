@@ -1,0 +1,3958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PULSAR LIVE">
+<title>PULSAR LIVE</title>
+<style>
+/*
+  Design tokens.
+  The stage is an always-black light installation by design, so both themes
+  keep light ink on a black field; the tokens are still declared per theme.
+*/
+:root {
+  color-scheme: dark;
+  --bg: #000000;
+  --ink: #eef6ff;
+  --ink-dim: rgba(214, 228, 255, 0.68);
+  --ink-faint: rgba(196, 212, 255, 0.42);
+  --glass: rgba(6, 8, 18, 0.56);
+  --glass-strong: rgba(6, 8, 18, 0.9);
+  --line: rgba(150, 185, 255, 0.14);
+  --line-strong: rgba(150, 185, 255, 0.26);
+  --chip: rgba(255, 255, 255, 0.045);
+  --live: #ff2f7a;
+  --live-rgb: 255, 47, 122;
+  --accent: #00f0ff;
+  --accent-rgb: 0, 240, 255;
+  --accent2-rgb: 255, 43, 214;
+  --wm-glow: 0.35;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --ink: #eef6ff;
+    --ink-dim: rgba(214, 228, 255, 0.68);
+    --ink-faint: rgba(196, 212, 255, 0.42);
+    --glass: rgba(6, 8, 18, 0.56);
+    --glass-strong: rgba(6, 8, 18, 0.9);
+    --line: rgba(150, 185, 255, 0.14);
+    --line-strong: rgba(150, 185, 255, 0.26);
+    --chip: rgba(255, 255, 255, 0.045);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --ink: #eef6ff;
+  --ink-dim: rgba(214, 228, 255, 0.68);
+  --ink-faint: rgba(196, 212, 255, 0.42);
+  --glass: rgba(6, 8, 18, 0.56);
+  --glass-strong: rgba(6, 8, 18, 0.9);
+  --line: rgba(150, 185, 255, 0.14);
+  --line-strong: rgba(150, 185, 255, 0.26);
+  --chip: rgba(255, 255, 255, 0.045);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { height: 100%; background: var(--bg); }
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button {
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:active { transform: scale(0.97); }
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.85);
+  outline-offset: 2px;
+}
+
+/* ---------- Stage ---------- */
+#stage {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  background: #000;
+  touch-action: none;
+}
+.vignette {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(120% 92% at 50% 45%, rgba(0,0,0,0) 56%, rgba(0,0,0,0.58) 100%);
+}
+
+/* ---------- Top HUD ---------- */
+.hud-top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-right, 0px) + 16px) 0 calc(env(safe-area-inset-left, 0px) + 18px);
+  pointer-events: none;
+}
+.brand { transition: opacity 0.6s ease, transform 0.6s ease; min-width: 0; }
+.wordmark {
+  font-size: 12.5px;
+  font-weight: 250;
+  letter-spacing: 0.52em;
+  white-space: nowrap;
+  color: var(--ink);
+  text-shadow: 0 0 calc(6px + 22px * var(--wm-glow)) rgba(var(--accent-rgb), calc(0.25 + 0.6 * var(--wm-glow)));
+}
+.mode-label {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+}
+.mode-label::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.95), rgba(var(--accent-rgb), 0));
+}
+.status { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 11px 0 10px;
+  border-radius: 15px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  transition: opacity 0.6s, border-color 0.3s, color 0.3s;
+}
+.pill .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.9);
+}
+.pill[data-state="requesting"] .dot { background: #ffd447; box-shadow: 0 0 10px rgba(255, 212, 71, 0.9); animation: blink 1s infinite; }
+.pill[data-state="mic"] { color: var(--ink); border-color: rgba(var(--live-rgb), 0.4); }
+.pill[data-state="mic"] .dot { background: var(--live); box-shadow: 0 0 12px rgba(var(--live-rgb), 0.95); animation: breathe 1.8s ease-in-out infinite; }
+.pill[data-state="paused"] .dot { background: #ffb02e; box-shadow: 0 0 10px rgba(255, 176, 46, 0.8); }
+.meter { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-left: 1px; }
+.meter i {
+  display: block;
+  width: 3px; height: 12px;
+  border-radius: 1.5px;
+  background: rgba(var(--accent-rgb), 0.9);
+  transform-origin: 50% 100%;
+  transform: scaleY(0.1);
+}
+.meter i:nth-child(2) { background: rgba(165, 185, 255, 0.9); }
+.meter i:nth-child(3) { background: rgba(var(--accent2-rgb), 0.95); }
+.fps {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  transition: opacity 0.6s;
+}
+body.idle .brand { opacity: 0; transform: translateY(-6px); }
+body.idle .fps { opacity: 0; }
+body.idle .pill { opacity: 0.74; }
+
+/* ---------- Hint & toast ---------- */
+.hint {
+  position: fixed;
+  left: 50%;
+  /* Above the dock (about 250 px tall in portrait), whatever the screen height. */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 268px);
+  z-index: 11;
+  transform: translateX(-50%);
+  width: min(86vw, 360px);
+  pointer-events: none;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--ink-dim);
+  text-shadow: 0 0 14px #000, 0 0 4px #000;
+  transition: opacity 1.4s ease;
+}
+.hint.gone { opacity: 0; }
+.toast {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 70px);
+  z-index: 40;
+  transform: translate(-50%, -8px);
+  width: max-content;
+  max-width: min(92vw, 440px);
+  padding: 11px 15px;
+  border-radius: 14px;
+  background: var(--glass-strong);
+  border: 1px solid var(--line-strong);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s, transform 0.35s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast[data-kind="error"] { border-color: rgba(255, 92, 128, 0.5); }
+.toast[data-kind="ok"] { border-color: rgba(var(--accent-rgb), 0.45); }
+
+/* ---------- Dock ---------- */
+.dock {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 10;
+  padding: 0 calc(env(safe-area-inset-right, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 10px) calc(env(safe-area-inset-left, 0px) + 10px);
+  pointer-events: none;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.dock-inner {
+  pointer-events: auto;
+  position: relative;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+  border-radius: 24px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+body.idle .dock, body.sheet-open .dock { opacity: 0; transform: translateY(14px); }
+body.idle .dock-inner, body.sheet-open .dock-inner { pointer-events: none; }
+body.lowfx .dock-inner, body.lowfx .pill, body.lowfx .toast, body.lowfx .sheet {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--glass-strong);
+}
+.modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.3);
+}
+.mode {
+  height: 48px;
+  border: 0;
+  border-radius: 15px;
+  background: transparent;
+  color: var(--ink-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.mode svg { width: 19px; height: 19px; }
+.mode[aria-pressed="true"] {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 22px rgba(var(--accent-rgb), 0.12);
+}
+.mode[aria-pressed="true"] svg { color: var(--accent); filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.8)); }
+.mixer { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 2px 8px 0; }
+.ctl { display: block; min-width: 0; }
+.ctl-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-dim);
+}
+.ctl-head output {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+.actions { display: grid; grid-template-columns: 1fr 48px 48px 48px; gap: 6px; }
+.input-btn {
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.input-btn svg { width: 18px; height: 18px; }
+.input-btn.live {
+  background: rgba(var(--live-rgb), 0.14);
+  border-color: rgba(var(--live-rgb), 0.45);
+  box-shadow: 0 0 24px rgba(var(--live-rgb), 0.18);
+}
+.icon-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+  padding: 0;
+}
+.icon-btn svg { width: 20px; height: 20px; }
+
+/* ---------- Live controls ---------- */
+.live {
+  display: grid;
+  grid-template-columns: 48px 48px minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 6px;
+  align-items: center;
+}
+.live .ctl { padding: 0 4px; }
+.icon-btn[aria-pressed="true"] {
+  color: var(--ink);
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.14);
+}
+.icon-btn:disabled { opacity: 0.4; cursor: default; }
+.scene-select {
+  min-width: 0;
+  width: 100%;
+  height: 44px;
+  padding: 0 30px 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background-color: var(--chip);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c4d4ff' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;                      /* 16px keeps iPhone Safari from zooming on focus */
+  text-overflow: ellipsis;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.scene-select:disabled { opacity: 0.5; }
+.scene-select option { background: #0b0e1a; color: #eef6ff; }
+
+/* ---------- Sliders ---------- */
+input[type="range"] {
+  --fill: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  touch-action: manipulation;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.9) 0, rgba(var(--accent-rgb), 0.9) var(--fill), rgba(255, 255, 255, 0.13) var(--fill));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -10px;
+  border-radius: 50%;
+  border: 0;
+  background: #f4fbff;
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.16), 0 0 16px rgba(var(--accent-rgb), 0.75);
+}
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.13); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 4px; background: rgba(var(--accent-rgb), 0.9); }
+input[type="range"]::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%; border: 0;
+  background: #f4fbff;
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.16), 0 0 16px rgba(var(--accent-rgb), 0.75);
+}
+
+/* ---------- Settings sheet ---------- */
+.scrim {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s;
+}
+.scrim.show { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 31;
+  max-width: 560px;
+  margin: 0 auto;
+  max-height: 80%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 6px calc(env(safe-area-inset-right, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 22px) calc(env(safe-area-inset-left, 0px) + 20px);
+  background: var(--glass-strong);
+  border: 1px solid var(--line-strong);
+  border-bottom: 0;
+  border-radius: 26px 26px 0 0;
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  transform: translateY(104%);
+  visibility: hidden;
+  transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.42s;
+}
+.sheet.open {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+}
+.grabber { width: 38px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); margin: 6px auto 4px; }
+.sheet-head {
+  position: sticky;
+  top: -6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0 8px;
+  background: linear-gradient(rgba(6, 8, 18, 0.96) 72%, rgba(6, 8, 18, 0));
+}
+.sheet h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: 0.01em; }
+.sheet h3 {
+  margin: 22px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--accent-rgb), 0.92);
+}
+.row { padding: 7px 0; }
+.row .ctl-head { font-size: 13px; color: var(--ink); }
+.row .ctl-head output { font-size: 13px; color: var(--ink-dim); }
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 52px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.switch-row small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.4; color: var(--ink-faint); }
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 32px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 0;
+  transition: background 0.25s;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.25s;
+}
+.switch[aria-checked="true"] { background: rgba(var(--accent-rgb), 0.7); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.seg { display: inline-grid; grid-auto-flow: column; gap: 3px; padding: 3px; border-radius: 13px; background: rgba(0, 0, 0, 0.32); flex: 0 0 auto; }
+.seg button {
+  min-width: 58px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 13px;
+  font-weight: 600;
+}
+.seg button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.1); color: var(--ink); }
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 6px 0 4px; }
+.swatch {
+  height: 60px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-dim);
+}
+.swatch i { display: block; width: 70%; height: 6px; border-radius: 3px; }
+.swatch[aria-pressed="true"] {
+  border-color: rgba(var(--accent-rgb), 0.65);
+  color: var(--ink);
+  box-shadow: inset 0 0 18px rgba(var(--accent-rgb), 0.18);
+}
+.note { margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--ink-dim); max-width: 62ch; }
+.perf { margin-top: 4px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-faint); }
+.ghost-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 14px;
+  font-weight: 600;
+}
+/* ---------- Scenes ---------- */
+.scene-save { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.text-input {
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;                    /* 16px keeps iPhone Safari from zooming on focus */
+  -webkit-user-select: text;
+  user-select: text;
+}
+.text-input::placeholder { color: var(--ink-faint); }
+.chip-btn {
+  min-width: 64px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.chip-btn:disabled { opacity: 0.4; cursor: default; }
+.chip-btn.danger { border-color: rgba(255, 92, 128, 0.5); background: rgba(255, 92, 128, 0.14); }
+.scene-msg { min-height: 1.45em; margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-dim); }
+.scene-msg[data-kind="error"] { color: #ff8fa8; }
+.scene-msg[data-kind="ok"] { color: rgba(var(--accent-rgb), 0.95); }
+.scene-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.scene-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.scene-row:first-child { border-top: 0; }
+.scene-name { min-width: 0; font-size: 14px; line-height: 1.35; color: var(--ink); overflow-wrap: anywhere; }
+.scene-acts { display: flex; gap: 6px; }
+.scene-acts .chip-btn { min-width: 0; height: 40px; padding: 0 11px; }
+.scene-row.editing { grid-template-columns: 1fr; }
+.scene-row.editing .scene-acts { justify-content: flex-end; }
+.scene-tools { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.scene-count { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-faint); }
+.seg.seg-wide {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  margin-top: 10px;
+}
+.seg-wide button { min-width: 0; padding: 0 6px; }
+.haptic-hidden {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  clip-path: inset(50%);
+}
+.update-bar {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 120px);
+  z-index: 41;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(94vw, 460px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--glass-strong);
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.update-bar[hidden], .chip-btn[hidden] { display: none; }
+.fatal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--ink);
+  background: #000;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.fatal[hidden] { display: none; }
+
+/* ---------- Landscape phones ---------- */
+@media (orientation: landscape) and (max-height: 540px) {
+  .dock-inner {
+    max-width: 900px;
+    grid-template-columns: minmax(250px, 1.15fr) minmax(190px, 1fr) auto;
+    align-items: center;
+    padding: 6px;
+  }
+  .mode { height: 44px; }
+  .actions { grid-template-columns: 118px 44px 44px 44px; }
+  .input-btn { height: 44px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .mixer { padding: 0 4px; gap: 14px; }
+  /* Two rows: modes, mixer and actions; then the live controls across. */
+  .actions { grid-column: 3; grid-row: 1; }
+  .live { grid-column: 1 / -1; grid-row: 2; grid-template-columns: 44px 44px minmax(0, 1fr) minmax(0, 1fr); }
+  .live .icon-btn { width: 44px; height: 44px; }
+  .toast { top: calc(env(safe-area-inset-top, 0px) + 56px); }
+  .hint { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 22%); }
+  .sheet {
+    left: auto;
+    top: 0;
+    width: min(400px, 56vw);
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-left: 1px solid var(--line-strong);
+    border-radius: 26px 0 0 26px;
+    transform: translateX(104%);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+  }
+  .grabber { display: none; }
+}
+@media (max-width: 350px) {
+  .mode { font-size: 10px; }
+  .mixer { gap: 12px; }
+  .wordmark { letter-spacing: 0.4em; }
+}
+
+@keyframes breathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.8); } }
+@keyframes blink { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .pill .dot { animation: none !important; }
+  .dock, .brand, .sheet, .toast, .hint { transition-duration: 0.01ms !important; }
+}
+/* The same for the interface when Reduced is chosen in settings. */
+body.reduce-motion .pill .dot { animation: none !important; }
+body.reduce-motion .dock, body.reduce-motion .brand, body.reduce-motion .sheet,
+body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01ms !important; }
+</style>
+</head>
+<body>
+<label id="surface"><canvas id="stage" aria-label="PULSAR LIVE light field. Tap for shockwaves, drag to bend the field, and use two fingers for twin force points."></canvas><input class="haptic-hidden" id="surfaceSwitch" type="checkbox" switch tabindex="-1" aria-hidden="true"></label>
+<label class="haptic-hidden" id="hapticTick" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="hud-top">
+  <div class="brand">
+    <div class="wordmark">PULSAR LIVE</div>
+    <div class="mode-label" id="modeLabel">Vortex</div>
+  </div>
+  <div class="status">
+    <div class="pill" id="inputPill" data-state="demo" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="inputLabel">Demo signal</span>
+      <span class="meter" aria-hidden="true"><i id="mB"></i><i id="mM"></i><i id="mT"></i></span>
+    </div>
+    <div class="fps" id="fps">Measuring</div>
+  </div>
+</header>
+
+<div class="hint" id="hint" aria-hidden="true">Tap to send a shockwave<br>Drag to bend the field<br>Two fingers for twin forces</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="update-bar" id="updateBar" role="region" aria-label="Update available" hidden>
+  <span>A new version of PULSAR LIVE is ready.</span>
+  <button class="chip-btn" id="updateNow" type="button">Update</button>
+  <button class="chip-btn" id="updateLater" type="button">Later</button>
+</div>
+
+<nav class="dock" id="dock" aria-label="Controls">
+  <div class="dock-inner" id="dockInner">
+    <div class="modes" role="group" aria-label="Visualization mode">
+      <button class="mode" type="button" data-mode="vortex" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a1 1 0 0 1 2 0a3 3 0 0 1-6 0a5 5 0 0 1 10 0a7 7 0 0 1-14 0"/></svg>
+        <span>Vortex</span>
+      </button>
+      <button class="mode" type="button" data-mode="fluid" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8c3-3 6 3 9 0s6 3 9 0M3 13c3-3 6 3 9 0s6 3 9 0M3 18c3-3 6 3 9 0s6 3 9 0"/></svg>
+        <span>Fluid</span>
+      </button>
+      <button class="mode" type="button" data-mode="geometry" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/><path d="M12 7.5l4 7H8z"/></svg>
+        <span>Geometry</span>
+      </button>
+      <button class="mode" type="button" data-mode="plasma" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+        <span>Plasma</span>
+      </button>
+    </div>
+    <div class="mixer">
+      <label class="ctl">
+        <span class="ctl-head"><span>Energy</span><output data-for="dEnergy"></output></span>
+        <input type="range" id="dEnergy" data-key="energy" data-div="100" min="0" max="150" step="1" aria-label="Energy">
+      </label>
+      <label class="ctl">
+        <span class="ctl-head"><span>Density</span><output data-for="dDensity"></output></span>
+        <input type="range" id="dDensity" data-key="density" data-div="1" min="100" max="2000" step="50" aria-label="Particle density">
+      </label>
+    </div>
+    <div class="live" role="group" aria-label="Live controls">
+      <button class="icon-btn" id="pulseBtn" type="button" aria-label="Pulse" title="Pulse (P)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="12" r="5.8" opacity="0.75"/><circle cx="12" cy="12" r="9.4" opacity="0.45"/></svg>
+      </button>
+      <button class="icon-btn" id="freezeBtn" type="button" aria-pressed="false" aria-label="Freeze" title="Freeze (F)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
+      </button>
+      <label class="ctl">
+        <span class="ctl-head"><span>Intensity</span><output data-for="dIntensity"></output></span>
+        <input type="range" id="dIntensity" data-key="intensity" data-div="100" min="0" max="150" step="5" aria-label="Intensity">
+      </label>
+      <select class="scene-select" id="liveScene" aria-label="Scene"><option value="">Scenes</option></select>
+    </div>
+    <div class="actions">
+      <button class="input-btn" id="inputBtn" type="button" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <span id="inputBtnLabel">Start mic</span>
+      </button>
+      <button class="icon-btn" id="snapBtn" type="button" aria-label="Save snapshot" title="Save snapshot (S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.2h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+      </button>
+      <button class="icon-btn" id="immersiveBtn" type="button" aria-label="Immersive view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-label="Settings" aria-hidden="true">
+  <div class="grabber" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2>Settings</h2>
+    <button class="icon-btn" id="closeSheet" type="button" aria-label="Close settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <section id="scenes" aria-labelledby="scenesTitle">
+    <h3 id="scenesTitle">Scenes</h3>
+    <p class="note">Save the current mode, palette, and tuning as a named scene. Scenes never include recorded audio or microphone access.</p>
+    <form class="scene-save" id="sceneForm" autocomplete="off">
+      <input class="text-input" type="text" id="sceneName" maxlength="40" placeholder="Scene name" aria-label="Scene name" enterkeyhint="done" spellcheck="false" autocapitalize="sentences">
+      <button class="chip-btn" type="submit" id="sceneSave">Save</button>
+    </form>
+    <p class="scene-msg" id="sceneMsg" role="status" aria-live="polite"></p>
+    <ul class="scene-list" id="sceneList" aria-label="Saved scenes"></ul>
+    <div class="scene-tools">
+      <button class="chip-btn" type="button" id="sceneImport">Import</button>
+      <button class="chip-btn" type="button" id="sceneExport">Export</button>
+      <span class="scene-count" id="sceneCount"></span>
+    </div>
+    <p class="note" id="sceneStore"></p>
+    <input type="file" id="sceneFile" accept=".json,application/json" hidden>
+  </section>
+
+  <h3>Motion and flashes</h3>
+  <div class="row">
+    <div class="ctl-head"><span>Motion</span></div>
+    <div class="seg seg-wide" role="group" aria-label="Motion preference">
+      <button type="button" data-motion="system" aria-pressed="true">System</button>
+      <button type="button" data-motion="full" aria-pressed="false">Full</button>
+      <button type="button" data-motion="reduced" aria-pressed="false">Reduced</button>
+    </div>
+    <p class="note" id="motionNote" role="status" aria-live="polite"></p>
+  </div>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Bursts and flashes</span><output data-for="sBursts"></output></span>
+    <input type="range" id="sBursts" data-key="bursts" data-div="100" min="0" max="100" step="5">
+  </label>
+  <p class="note">Scales the shockwaves, sparkles and brightness jumps from taps, release pulses, the Pulse button and beats. Off turns sudden bursts off entirely. Reduced motion also slows the field to at most 60% speed, stops beats from setting off bursts, caps bursts at 30%, and cuts sparkles and jitter. These controls reduce motion; they aren’t a guarantee of comfort or safety for any condition. Freeze stops all motion. Reset keeps these two settings.</p>
+
+  <h3>Live controls</h3>
+  <p class="note">In the dock: <strong>Pulse</strong> (P) sends a shockwave from the center. <strong>Freeze</strong> (F) holds the picture still until you press it again; sound is still analyzed for the meters, and the microphone is still released if the page goes to the background. <strong>Intensity</strong> scales how strongly sound drives everything and stays put when scenes change. The <strong>scene list</strong> (or [ and ]) loads saved scenes. A scene in the same mode blends in over 1.5 seconds; one in another mode switches at once. Changing a scene setting by hand clears the selection. The camera button (S) saves the picture as a PNG, without the controls, at the current render resolution. It never includes sound.</p>
+
+  <h3>Sound</h3>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Sensitivity</span><output data-for="sSens"></output></span>
+    <input type="range" id="sSens" data-key="sensitivity" data-div="100" min="20" max="300" step="5">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Audio smoothing</span><output data-for="sSmooth"></output></span>
+    <input type="range" id="sSmooth" data-key="smoothing" data-div="100" min="0" max="95" step="1">
+  </label>
+  <p class="note">Sensitivity sets how strongly sound drives the field. Lower smoothing feels snappier; higher smoothing calms jitter from speech and noisy rooms.</p>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Bass</span><output data-for="sBass"></output></span>
+    <input type="range" id="sBass" data-key="bassGain" data-div="100" min="0" max="200" step="5">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Midrange</span><output data-for="sMid"></output></span>
+    <input type="range" id="sMid" data-key="midGain" data-div="100" min="0" max="200" step="5">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Treble</span><output data-for="sTreble"></output></span>
+    <input type="range" id="sTreble" data-key="trebleGain" data-div="100" min="0" max="200" step="5">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Noise threshold</span><output data-for="sGate"></output></span>
+    <input type="range" id="sGate" data-key="noiseGate" data-div="100" min="0" max="50" step="1">
+  </label>
+  <p class="note">Bass, midrange and treble set how much each band drives the field, on top of sensitivity; 0% mutes a band. Beats are detected from the bass band. The noise threshold ignores quiet sound, such as room hum, below that share of the recent peak. All four apply to the microphone and the demo signal.</p>
+
+  <h3>Motion</h3>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Particle density</span><output data-for="sDensity"></output></span>
+    <input type="range" id="sDensity" data-key="density" data-div="1" min="100" max="2000" step="50">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Particle speed</span><output data-for="sSpeed"></output></span>
+    <input type="range" id="sSpeed" data-key="speed" data-div="100" min="30" max="200" step="5">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Geometry symmetry</span><output data-for="sSym"></output></span>
+    <input type="range" id="sSym" data-key="symmetry" data-div="1" min="3" max="12" step="1">
+  </label>
+
+  <h3>Touch</h3>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Touch strength</span><output data-for="sTouch"></output></span>
+    <input type="range" id="sTouch" data-key="touchStrength" data-div="100" min="0" max="200" step="5">
+  </label>
+  <p class="note">How hard dragging fingers push, pull and swirl particles, in every mode. 0% disables drag forces. Geometry twist and pinch remain active, and taps still send shockwaves.</p>
+  <div class="switch-row">
+    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. Scales with touch strength.</small></span>
+    <button class="switch" id="releasePulse" type="button" role="switch" aria-checked="false" aria-label="Release pulse"></button>
+  </div>
+
+  <h3>Look</h3>
+  <div class="swatches" id="swatches" role="group" aria-label="Color palette"></div>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Trail persistence</span><output data-for="sTrail"></output></span>
+    <input type="range" id="sTrail" data-key="trail" data-div="100" min="0" max="95" step="1">
+  </label>
+  <label class="row ctl">
+    <span class="ctl-head"><span>Glow intensity</span><output data-for="sGlow"></output></span>
+    <input type="range" id="sGlow" data-key="glow" data-div="100" min="0" max="150" step="1">
+  </label>
+
+  <h3>Haptics</h3>
+  <div class="row">
+    <div class="ctl-head"><span>Haptic feedback</span></div>
+    <div class="seg seg-wide" role="group" aria-label="Haptic feedback">
+      <button type="button" data-haptics="off" aria-pressed="false">Off</button>
+      <button type="button" data-haptics="touch" aria-pressed="true">Touch</button>
+      <button type="button" data-haptics="beat" aria-pressed="false">Touch + beat</button>
+    </div>
+    <p class="note" id="hapticNote"></p>
+  </div>
+
+  <h3>Performance</h3>
+  <div class="row">
+    <div class="ctl-head"><span>Profile</span></div>
+    <div class="seg seg-wide" role="group" aria-label="Performance profile">
+      <button type="button" data-profile="visual" aria-pressed="false">Visual</button>
+      <button type="button" data-profile="balanced" aria-pressed="true">Balanced</button>
+      <button type="button" data-profile="battery" aria-pressed="false">Battery Saver</button>
+    </div>
+    <p class="note" id="profileNote"></p>
+  </div>
+  <div class="switch-row">
+    <span>Automatic quality<small>Lowers resolution first, then density, when motion starts to stutter, within the profile’s range.</small></span>
+    <button class="switch" id="autoQ" type="button" role="switch" aria-checked="true" aria-label="Automatic quality"></button>
+  </div>
+  <div class="switch-row">
+    <span>Frame rate<small>30 fps saves battery on older iPhones.</small></span>
+    <div class="seg" role="group" aria-label="Frame rate limit">
+      <button type="button" data-cap="60" aria-pressed="true">Full</button>
+      <button type="button" data-cap="30" aria-pressed="false">30 fps</button>
+    </div>
+  </div>
+  <div class="perf" id="perfLine">Measuring frame rate</div>
+
+  <h3>Offline use</h3>
+  <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
+  <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
+
+  <h3>About sound</h3>
+  <p class="note">PULSAR LIVE listens only through your microphone and analyzes it in real time on this device. It never records, stores, or uploads audio. It can’t capture sound playing inside Apple Music, Spotify, or other apps, so play music out loud nearby instead. If this page is embedded somewhere that blocks the microphone, Demo mode keeps everything running.</p>
+  <p class="note" id="storageNote"></p>
+  <button class="ghost-btn" id="resetBtn" type="button">Reset tuning to defaults</button>
+  <p class="note">Resetting keeps your saved scenes and your motion settings. It returns the performance profile to Balanced and intensity to 100%.</p>
+</aside>
+
+<div class="fatal" id="fatal" hidden>PULSAR LIVE needs Canvas 2D, which this browser didn’t provide. Try a current version of Safari, Chrome, Firefox, or Edge.</div>
+<noscript><div class="fatal">PULSAR LIVE needs JavaScript to run.</div></noscript>
+
+<script id="scene-model">
+/* =======================================================================
+   Saved scenes: schema, validation and the scene library.
+   Kept free of DOM access so tools/tests/scenes.test.mjs can load this
+   block on its own. A scene holds tuning settings only: never audio,
+   microphone permission, haptics or renderer state.
+   ======================================================================= */
+var PulsarScenes = (function () {
+  'use strict';
+
+  var FORMAT = 'pulsar-live-scenes';
+  // Version 2 added touchStrength and releasePulse; version 3 added the band
+  // gains and noise threshold. Files and stored libraries from older versions
+  // still load: their scenes get the values listed in spec.added.
+  var VERSION = 3;
+  var MAX_SCENES = 20;
+  var MAX_NAME = 40;
+  var MAX_IMPORT_BYTES = 64 * 1024;
+  var STORE_KEY = 'pulsarLive.scenes.v1';
+  var hasOwn = Object.prototype.hasOwnProperty;
+
+  // A plain object from any realm: its prototype is null or a base Object prototype.
+  function isPlainObject(v) {
+    if (v === null || typeof v !== 'object' || Array.isArray(v)) return false;
+    var p = Object.getPrototypeOf(v);
+    return p === null || Object.getPrototypeOf(p) === null;
+  }
+  // True when obj has exactly the given keys.
+  function exactKeys(obj, keys) {
+    var own = Object.keys(obj);
+    if (own.length !== keys.length) return false;
+    for (var i = 0; i < keys.length; i++) if (!hasOwn.call(obj, keys[i])) return false;
+    return true;
+  }
+  function byteLength(text) {
+    if (typeof TextEncoder === 'function') return new TextEncoder().encode(text).length;
+    return unescape(encodeURIComponent(text)).length;
+  }
+
+  // Names are trimmed, 1-40 characters (code points), with no control characters.
+  function cleanName(raw) {
+    if (typeof raw !== 'string') return { ok: false, error: 'A scene name must be text.' };
+    var name = raw.replace(/\s+/g, ' ').trim();
+    if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(raw)) return { ok: false, error: 'Scene names can’t contain control characters.' };
+    var len = Array.from(name).length;
+    if (len < 1) return { ok: false, error: 'Give the scene a name.' };
+    if (len > MAX_NAME) return { ok: false, error: 'Scene names can be at most ' + MAX_NAME + ' characters.' };
+    return { ok: true, name: name };
+  }
+  function nameKey(name) {
+    return (name.normalize ? name.normalize('NFC') : name).toLowerCase();
+  }
+
+  // spec: { ranges: {key: [min, max]}, integers: [keys], enums: {key: [values]}, booleans: [keys],
+  //         added: {version: {key: value for scenes from older versions}} }
+  function createModel(spec) {
+    var KEYS = [].concat(Object.keys(spec.ranges), Object.keys(spec.enums), spec.booleans).sort();
+    var added = spec.added || {};
+    // The keys a scene carries in each supported version, newest first.
+    var keysFor = {};
+    keysFor[VERSION] = KEYS;
+    for (var av in added) {
+      if (!(+av >= 2 && +av <= VERSION && +av % 1 === 0)) throw new Error('Scene keys can only be added in versions 2 to ' + VERSION + '.');
+      for (var ak in added[av]) if (KEYS.indexOf(ak) < 0) throw new Error('Added scene key “' + ak + '” isn’t a scene setting.');
+    }
+    for (var ver = VERSION; ver > 1; ver--) {
+      keysFor[ver - 1] = keysFor[ver].filter(function (k) { return !added[ver] || !hasOwn.call(added[ver], k); });
+    }
+
+    // Validates settings in the shape of the given version (default: current).
+    function validateSettings(s, version) {
+      var keys = keysFor[version === undefined ? VERSION : version];
+      if (!keys) return 'Unsupported scene version.';
+      if (!isPlainObject(s)) return 'Scene settings must be an object.';
+      if (!exactKeys(s, keys)) return 'Scene settings must contain exactly: ' + keys.join(', ') + '.';
+      for (var k in spec.ranges) {
+        if (keys.indexOf(k) < 0) continue;
+        var v = s[k], r = spec.ranges[k];
+        if (typeof v !== 'number' || !isFinite(v)) return 'Setting “' + k + '” must be a number.';
+        if (v < r[0] || v > r[1]) return 'Setting “' + k + '” must be between ' + r[0] + ' and ' + r[1] + '.';
+        if (spec.integers.indexOf(k) >= 0 && Math.round(v) !== v) return 'Setting “' + k + '” must be a whole number.';
+      }
+      for (var e in spec.enums) {
+        if (keys.indexOf(e) < 0) continue;
+        if (spec.enums[e].indexOf(s[e]) < 0) return 'Setting “' + e + '” must be one of: ' + spec.enums[e].join(', ') + '.';
+      }
+      for (var b = 0; b < spec.booleans.length; b++) {
+        if (keys.indexOf(spec.booleans[b]) < 0) continue;
+        if (typeof s[spec.booleans[b]] !== 'boolean') return 'Setting “' + spec.booleans[b] + '” must be true or false.';
+      }
+      return '';
+    }
+    // Brings validated settings from an older version up to the current one.
+    function migrate(s, version) {
+      var out = {};
+      for (var k in s) out[k] = s[k];
+      for (var v = version + 1; v <= VERSION; v++) for (var a in added[v]) out[a] = added[v][a];
+      return out;
+    }
+    // Copies the scene keys out of a live settings object.
+    function capture(live) {
+      var out = {};
+      for (var i = 0; i < KEYS.length; i++) out[KEYS[i]] = live[KEYS[i]];
+      return out;
+    }
+    // Parses and fully validates a document before anything is changed.
+    function parseDocument(text) {
+      if (typeof text !== 'string') return { ok: false, error: 'The file couldn’t be read as text.' };
+      if (byteLength(text) > MAX_IMPORT_BYTES) return { ok: false, error: 'Scene files can be at most 64 KB.' };
+      var doc;
+      try { doc = JSON.parse(text); } catch (e) { return { ok: false, error: 'This file isn’t valid JSON.' }; }
+      if (!isPlainObject(doc) || doc.format !== FORMAT) return { ok: false, error: 'This isn’t a PULSAR LIVE scene file.' };
+      var version = doc.version;
+      if (typeof version !== 'number' || version % 1 !== 0 || version < 1 || version > VERSION) {
+        return { ok: false, error: 'This scene file uses version ' + JSON.stringify(version) + ', which this version of PULSAR LIVE doesn’t support.' };
+      }
+      if (!exactKeys(doc, ['format', 'version', 'scenes'])) return { ok: false, error: 'The scene file has unexpected fields.' };
+      if (!Array.isArray(doc.scenes)) return { ok: false, error: 'The scene file has no scene list.' };
+      if (doc.scenes.length > MAX_SCENES) return { ok: false, error: 'A scene file can hold at most ' + MAX_SCENES + ' scenes.' };
+      var scenes = [], seen = {};
+      for (var i = 0; i < doc.scenes.length; i++) {
+        var sc = doc.scenes[i], at = 'Scene ' + (i + 1) + ': ';
+        if (!isPlainObject(sc) || !exactKeys(sc, ['name', 'settings'])) return { ok: false, error: at + 'each scene needs exactly a name and settings.' };
+        var n = cleanName(sc.name);
+        if (!n.ok) return { ok: false, error: at + n.error };
+        if (seen[nameKey(n.name)]) return { ok: false, error: at + 'the name “' + n.name + '” appears more than once.' };
+        seen[nameKey(n.name)] = true;
+        var bad = validateSettings(sc.settings, version);
+        if (bad) return { ok: false, error: at + bad };
+        scenes.push({ name: n.name, settings: capture(migrate(sc.settings, version)) });
+      }
+      return { ok: true, scenes: scenes, version: version };
+    }
+    function serialize(scenes) {
+      return JSON.stringify({
+        format: FORMAT, version: VERSION,
+        scenes: scenes.map(function (s) { return { name: s.name, settings: capture(s.settings) }; })
+      }, null, 2);
+    }
+    return { KEYS: KEYS, keysFor: function (v) { return (keysFor[v] || []).slice(); }, validateSettings: validateSettings, capture: capture, parseDocument: parseDocument, serialize: serialize };
+  }
+
+  // Wraps a Storage-like object. load() never throws; save() reports why it failed.
+  function createStore(getStorage) {
+    return {
+      load: function (model) {
+        var raw;
+        try { raw = getStorage().getItem(STORE_KEY); } catch (e) { return { status: 'unavailable', scenes: [] }; }
+        if (raw === null || raw === undefined) return { status: 'empty', scenes: [] };
+        var parsed = model.parseDocument(raw);
+        if (!parsed.ok) return { status: 'corrupt', scenes: [], error: parsed.error };
+        // An older version is migrated in memory only; it's rewritten in the
+        // current version the next time the library changes.
+        return { status: 'ok', scenes: parsed.scenes, version: parsed.version };
+      },
+      save: function (text) {
+        try { getStorage().setItem(STORE_KEY, text); return { ok: true }; }
+        catch (e) {
+          var quota = e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014);
+          return { ok: false, reason: quota ? 'quota' : 'unavailable' };
+        }
+      }
+    };
+  }
+
+  // The scene collection plus its persistence state.
+  //   persist: 'saved' (in this browser), 'unsaved' (last write failed, will retry),
+  //            'session' (storage unavailable), 'protected' (stored data unreadable;
+  //            it is left untouched and new scenes stay in this session).
+  function createLibrary(model, store) {
+    var loaded = store.load(model);
+    var scenes = loaded.scenes;
+    var persist = loaded.status === 'unavailable' ? 'session' : loaded.status === 'corrupt' ? 'protected' : 'saved';
+
+    function find(name, skip) {
+      var key = nameKey(name);
+      for (var i = 0; i < scenes.length; i++) if (i !== skip && nameKey(scenes[i].name) === key) return i;
+      return -1;
+    }
+    // Commits a new list: memory first, then storage when allowed.
+    function commit(next) {
+      scenes = next;
+      if (persist === 'session' || persist === 'protected') return { ok: true, persist: persist };
+      var w = store.save(model.serialize(scenes));
+      if (w.ok) persist = 'saved';
+      else persist = w.reason === 'quota' ? 'unsaved' : 'session';
+      return { ok: true, persist: persist, writeFailed: !w.ok, reason: w.reason };
+    }
+    function result(r, extra) { for (var k in extra) r[k] = extra[k]; return r; }
+
+    return {
+      MAX_SCENES: MAX_SCENES,
+      MAX_NAME: MAX_NAME,
+      MAX_IMPORT_BYTES: MAX_IMPORT_BYTES,
+      loadStatus: loaded.status,
+      loadError: loaded.error || '',
+      loadedVersion: loaded.version || 0,
+      persistence: function () { return persist; },
+      list: function () { return scenes.map(function (s) { return { name: s.name, settings: model.capture(s.settings) }; }); },
+      count: function () { return scenes.length; },
+      get: function (i) { return scenes[i] ? { name: scenes[i].name, settings: model.capture(scenes[i].settings) } : null; },
+      save: function (rawName, liveSettings) {
+        var n = cleanName(rawName);
+        if (!n.ok) return n;
+        if (find(n.name, -1) >= 0) return { ok: false, error: 'A scene named “' + n.name + '” already exists. Choose another name, or delete that scene first.' };
+        if (scenes.length >= MAX_SCENES) return { ok: false, error: 'You can keep up to ' + MAX_SCENES + ' scenes. Delete one to save another.' };
+        var settings = model.capture(liveSettings);
+        var bad = model.validateSettings(settings);
+        if (bad) return { ok: false, error: bad };
+        return result(commit(scenes.concat([{ name: n.name, settings: settings }])), { name: n.name });
+      },
+      rename: function (i, rawName) {
+        if (!scenes[i]) return { ok: false, error: 'That scene no longer exists.' };
+        var n = cleanName(rawName);
+        if (!n.ok) return n;
+        if (find(n.name, i) >= 0) return { ok: false, error: 'A scene named “' + n.name + '” already exists.' };
+        var next = scenes.slice();
+        next[i] = { name: n.name, settings: scenes[i].settings };
+        return result(commit(next), { name: n.name });
+      },
+      remove: function (i) {
+        if (!scenes[i]) return { ok: false, error: 'That scene no longer exists.' };
+        var name = scenes[i].name;
+        var next = scenes.slice();
+        next.splice(i, 1);
+        return result(commit(next), { name: name });
+      },
+      // Adds every scene in the document, or nothing. Clashing names get a
+      // numbered suffix instead of overwriting.
+      importText: function (text) {
+        var p = model.parseDocument(text);
+        if (!p.ok) return p;
+        if (!p.scenes.length) return { ok: false, error: 'The scene file is empty.' };
+        if (scenes.length + p.scenes.length > MAX_SCENES) {
+          return { ok: false, error: 'Importing ' + p.scenes.length + ' scene' + (p.scenes.length === 1 ? '' : 's') + ' would go past the limit of ' + MAX_SCENES + '. You have room for ' + (MAX_SCENES - scenes.length) + '.' };
+        }
+        var next = scenes.slice(), renamed = [];
+        for (var i = 0; i < p.scenes.length; i++) {
+          var sc = p.scenes[i], name = sc.name;
+          var taken = function (nm) { for (var j = 0; j < next.length; j++) if (nameKey(next[j].name) === nameKey(nm)) return true; return false; };
+          if (taken(name)) {
+            for (var k = 2; taken(name); k++) {
+              var suffix = ' (' + k + ')';
+              name = Array.from(sc.name).slice(0, MAX_NAME - suffix.length).join('').trim() + suffix;
+            }
+            renamed.push({ from: sc.name, to: name });
+          }
+          next.push({ name: name, settings: sc.settings });
+        }
+        return result(commit(next), { added: p.scenes.length, renamed: renamed, fromVersion: p.version });
+      },
+      exportText: function () { return model.serialize(scenes); }
+    };
+  }
+
+  return {
+    FORMAT: FORMAT, VERSION: VERSION, MAX_SCENES: MAX_SCENES, MAX_NAME: MAX_NAME,
+    MAX_IMPORT_BYTES: MAX_IMPORT_BYTES, STORE_KEY: STORE_KEY,
+    cleanName: cleanName, createModel: createModel, createStore: createStore, createLibrary: createLibrary
+  };
+})();
+</script>
+<script id="touch-model">
+// Touch gesture rules for the release pulse. DOM-free so tests can run it directly.
+var PulsarTouch = (function () {
+  'use strict';
+  var MIN_TRAVEL = 24;        // CSS px a pointer must move from where it went down to count as a drag
+  var PULSE_BASE = 0.6;       // release pulse strength at 100% touch strength
+  var PULSE_MAX = 1;          // never stronger than a tap's shockwave
+
+  // Shockwave strength for a release pulse, or 0 for none.
+  function releaseStrength(settings) {
+    if (!settings.releasePulse || !(settings.touchStrength > 0)) return 0;
+    return Math.min(PULSE_MAX, PULSE_BASE * settings.touchStrength);
+  }
+
+  // Tracks one gesture: from the first pointer down until the last pointer is
+  // released. Storage is fixed at maxPointers entries.
+  function createGesture(maxPointers) {
+    var ids = new Array(maxPointers);
+    var x0 = new Float64Array(maxPointers), y0 = new Float64Array(maxPointers);
+    var far = new Uint8Array(maxPointers);
+    var n = 0, dragged = false, interrupted = false;
+    var minTravel2 = MIN_TRAVEL * MIN_TRAVEL;
+
+    function find(id) {
+      for (var i = 0; i < n; i++) if (ids[i] === id) return i;
+      return -1;
+    }
+    function drop(i) {
+      n--;
+      ids[i] = ids[n]; x0[i] = x0[n]; y0[i] = y0[n]; far[i] = far[n];
+      ids[n] = undefined;
+    }
+    function clear() {
+      for (var i = 0; i < n; i++) ids[i] = undefined;
+      n = 0; dragged = false; interrupted = false;
+    }
+    return {
+      // Returns false when the pointer isn't tracked (already down, or full).
+      down: function (id, x, y) {
+        if (n === 0) { dragged = false; interrupted = false; }
+        if (n >= maxPointers || find(id) >= 0) return false;
+        ids[n] = id; x0[n] = x; y0[n] = y; far[n] = 0;
+        n++;
+        return true;
+      },
+      move: function (id, x, y) {
+        var i = find(id);
+        if (i < 0 || far[i]) return;
+        var dx = x - x0[i], dy = y - y0[i];
+        if (dx * dx + dy * dy >= minTravel2) far[i] = 1;
+      },
+      // A normal release. Returns true only when this was the last pointer and
+      // the gesture earned a pulse: some pointer dragged, nothing interrupted
+      // the gesture, and this release isn't itself a tap.
+      up: function (id, isTap) {
+        var i = find(id);
+        if (i < 0) return false;
+        if (far[i]) dragged = true;
+        drop(i);
+        if (n > 0) return false;
+        var earned = dragged && !interrupted && !isTap;
+        clear();
+        return earned;
+      },
+      // pointercancel or lost capture: the gesture can no longer earn a pulse.
+      cancel: function (id) {
+        var i = find(id);
+        if (i < 0) return;
+        drop(i);
+        if (n > 0) interrupted = true; else clear();
+      },
+      // The UI or the page took over mid-gesture (settings panel, dock).
+      interrupt: function () { if (n > 0) interrupted = true; },
+      // The page was hidden: forget every pointer.
+      reset: clear,
+      active: function () { return n; }
+    };
+  }
+
+  return { MIN_TRAVEL: MIN_TRAVEL, PULSE_BASE: PULSE_BASE, PULSE_MAX: PULSE_MAX, releaseStrength: releaseStrength, createGesture: createGesture };
+})();
+</script>
+<script id="audio-model">
+// Per-band audio response. DOM-free so tests can run it directly.
+var PulsarAudio = (function () {
+  'use strict';
+  var MAX = 1.3;              // highest band level the visuals receive
+
+  // Shapes one band level (0 is silence; about 1 is the recent peak for the
+  // microphone, or full scale for the demo signal). Levels at or below the
+  // noise threshold become 0 and the rest are rescaled from the threshold up,
+  // so opening the gate never jumps. Sensitivity and the band's gain then
+  // multiply the result. Threshold 0 and gain 1 leave sensitivity alone.
+  function shape(v, threshold, sensitivity, gain) {
+    if (!(v > threshold)) return 0;
+    if (threshold > 0) v = (v - threshold) / (1 - threshold);
+    v = v * sensitivity * gain;
+    return v > MAX ? MAX : v;
+  }
+
+  return { MAX: MAX, shape: shape };
+})();
+</script>
+<script id="perf-model">
+// Quality levels and manual performance profiles. DOM-free so tests can run it directly.
+var PulsarPerf = (function () {
+  'use strict';
+  // Automatic quality steps through these levels: a cap on the render scale
+  // and the share of the particle count that is drawn.
+  var QUALITY = [
+    { res: 2.0, part: 1.0 },
+    { res: 1.6, part: 1.0 },
+    { res: 1.3, part: 0.85 },
+    { res: 1.05, part: 0.7 },
+    { res: 0.9, part: 0.55 },
+    { res: 0.75, part: 0.4 }
+  ];
+  // A profile is a preset of limits for the one quality controller above, not
+  // a second controller. It never changes the user's requested settings.
+  //   minLevel, maxLevel  quality levels automatic quality may use; with
+  //                       automatic quality off, minLevel is used
+  //   maxParticles        cap on the requested density, before the level's share
+  //   fpsCap              highest frame rate; the lower of this and the user's limit applies
+  //   glowMax             cap on glow intensity (bigger glows draw more pixels)
+  //   sparks              multiplier on the treble spark chance
+  //   lowfx               drop the blur behind the controls at every level
+  // Balanced matches the behavior before profiles existed. These are presets,
+  // not measured savings.
+  var PROFILES = {
+    visual:   { name: 'Visual', minLevel: 0, maxLevel: 2, maxParticles: 2000, fpsCap: 60, glowMax: 1.5, sparks: 1, lowfx: false },
+    balanced: { name: 'Balanced', minLevel: 0, maxLevel: 5, maxParticles: 2000, fpsCap: 60, glowMax: 1.5, sparks: 1, lowfx: false },
+    battery:  { name: 'Battery Saver', minLevel: 3, maxLevel: 5, maxParticles: 700, fpsCap: 30, glowMax: 1, sparks: 0.5, lowfx: true }
+  };
+  var DEFAULT = 'balanced';
+
+  function get(name) { return Object.prototype.hasOwnProperty.call(PROFILES, name) ? PROFILES[name] : PROFILES[DEFAULT]; }
+  function clampLevel(p, level) { return level < p.minLevel ? p.minLevel : level > p.maxLevel ? p.maxLevel : level; }
+  // Particles drawn for a requested density at a quality level.
+  function particles(p, density, level) { return Math.round(Math.min(density, p.maxParticles) * QUALITY[clampLevel(p, level)].part); }
+  function fpsCap(p, requested) { return requested < p.fpsCap ? requested : p.fpsCap; }
+  function glow(p, requested) { return requested < p.glowMax ? requested : p.glowMax; }
+
+  return { QUALITY: QUALITY, PROFILES: PROFILES, DEFAULT: DEFAULT, get: get, clampLevel: clampLevel, particles: particles, fpsCap: fpsCap, glow: glow };
+})();
+</script>
+<script id="transition-model">
+// Scene transitions: the effective values the simulation reads while a scene
+// blends in. DOM-free so tests can run it directly.
+var PulsarTransition = (function () {
+  'use strict';
+  var DURATION = 1.5;         // seconds, for same-mode scene loads
+  function ease(t) { return t * t * (3 - 2 * t); }
+
+  // target: the requested settings (read, never written).
+  // blendKeys: numbers that move smoothly from the old value to the target.
+  // stepKeys: values that switch at the halfway point.
+  // live holds the values to use now. It is updated in place, so stepping
+  // allocates nothing.
+  function create(target, blendKeys, stepKeys) {
+    var all = blendKeys.concat(stepKeys);
+    var live = {}, from = {}, t = 1, i;
+    for (i = 0; i < all.length; i++) live[all[i]] = from[all[i]] = target[all[i]];
+    function sync() {
+      var e = ease(t), k, j;
+      for (j = 0; j < blendKeys.length; j++) {
+        k = blendKeys[j];
+        live[k] = t >= 1 ? target[k] : from[k] + (target[k] - from[k]) * e;
+      }
+      for (j = 0; j < stepKeys.length; j++) {
+        k = stepKeys[j];
+        live[k] = t < 0.5 ? from[k] : target[k];
+      }
+    }
+    return {
+      live: live,
+      // Starts from whatever is showing now, including a transition in
+      // progress, so a new scene interrupts cleanly. Change the target after.
+      begin: function () {
+        for (var j = 0; j < all.length; j++) from[all[j]] = live[all[j]];
+        t = 0;
+      },
+      step: function (dt) {
+        if (t < 1) t = Math.min(1, t + dt / DURATION);
+        sync();
+      },
+      // Ends any transition: the live values jump to the target.
+      cancel: function () { t = 1; sync(); },
+      // Re-reads the target, for changes made outside a transition step.
+      sync: sync,
+      active: function () { return t < 1; },
+      progress: function () { return t; }
+    };
+  }
+
+  return { DURATION: DURATION, ease: ease, create: create };
+})();
+</script>
+<script id="motion-model">
+// Motion limits for the reduced-motion preset and the burst control.
+// DOM-free so tests can run it directly. These limits reduce motion; they
+// are not a guarantee of comfort or safety for any condition.
+var PulsarMotion = (function () {
+  'use strict';
+  var REDUCED = { burst: 0.3, speed: 0.6, sparks: 0.3, jitter: 0.3, beatBursts: false };
+  var FULL = { burst: 1, speed: Infinity, sparks: 1, jitter: 1, beatBursts: true };
+  var PREFS = ['system', 'full', 'reduced'];
+
+  // pref: 'system' follows the operating system; 'full' and 'reduced' are an
+  // explicit choice that overrides it.
+  function isReduced(pref, systemReduced) { return pref === 'reduced' || (pref === 'system' && !!systemReduced); }
+  // Writes the effective limits into out, without allocating.
+  //   burst       multiplier for every burst (taps, release pulses, Pulse, beats); 0 means none
+  //   speed       cap on particle speed
+  //   sparks      multiplier on the treble sparkle chance
+  //   jitter      multiplier on treble jitter
+  //   beatBursts  whether beats may set off shockwaves and eruptions
+  function resolve(pref, systemReduced, bursts, out) {
+    var reduced = isReduced(pref, systemReduced), L = reduced ? REDUCED : FULL;
+    var b = bursts > 0 ? bursts : 0;
+    out.reduced = reduced;
+    out.burst = b < L.burst ? b : L.burst;
+    out.speed = L.speed;
+    out.sparks = L.sparks;
+    out.jitter = L.jitter;
+    out.beatBursts = L.beatBursts && out.burst > 0;
+    return out;
+  }
+
+  return { REDUCED: REDUCED, FULL: FULL, PREFS: PREFS, isReduced: isReduced, resolve: resolve };
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* =====================================================================
+     Utilities
+     ===================================================================== */
+  var TAU = Math.PI * 2;
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function $(id) { return document.getElementById(id); }
+
+  /* =====================================================================
+     Settings and persistence (non-sensitive preferences only)
+     ===================================================================== */
+  var STORE_KEY = 'pulsarLive.settings.v1';
+  var DEFAULTS = {
+    mode: 'vortex', palette: 'neon', density: 500, energy: 0.8, sensitivity: 1,
+    speed: 1, trail: 0.55, glow: 0.8, smoothing: 0.5, symmetry: 6,
+    autoQuality: true, fpsCap: 60, haptics: 'touch', touchStrength: 1, releasePulse: false,
+    bassGain: 1, midGain: 1, trebleGain: 1, noiseGate: 0, profile: 'balanced', intensity: 1,
+    motion: 'system', bursts: 1
+  };
+  var RANGES = {
+    density: [100, 2000], energy: [0, 1.5], sensitivity: [0.2, 3], speed: [0.3, 2],
+    trail: [0, 0.95], glow: [0, 1.5], smoothing: [0, 0.95], symmetry: [3, 12],
+    touchStrength: [0, 2], bassGain: [0, 2], midGain: [0, 2], trebleGain: [0, 2], noiseGate: [0, 0.5]
+  };
+  // Ranges of preferences that are not part of scenes (RANGES defines the scene keys).
+  var PREF_RANGES = { intensity: [0, 1.5], bursts: [0, 1] };
+  // Motion preferences change only through their own controls: scenes never
+  // carry them, and reset keeps them.
+  var MOTION_PREFS = { motion: true, bursts: true };
+  var MODE_NAMES = { vortex: 'Vortex', fluid: 'Fluid', geometry: 'Geometry', plasma: 'Plasma' };
+  var PALETTES = {
+    neon:     { name: 'Neon',       colors: ['#00f0ff', '#2f6bff', '#ff2bd6'] },
+    solar:    { name: 'Solar',      colors: ['#ffd447', '#ff7a1a', '#e3123b'] },
+    spectral: { name: 'Spectral',   colors: ['#2ee6d6', '#3a5cff', '#9b3cff'] },
+    mono:     { name: 'Monochrome', colors: ['#ffffff', '#c4cad6', '#77818f'] }
+  };
+
+  var settings = {};
+  for (var dk in DEFAULTS) settings[dk] = DEFAULTS[dk];
+  var storageAvailable = false;
+
+  function loadSettings() {
+    var raw = null;
+    try {
+      raw = window.localStorage.getItem(STORE_KEY);
+      storageAvailable = true;
+    } catch (e) { storageAvailable = false; }
+    if (!raw) return;
+    var obj;
+    try { obj = JSON.parse(raw); } catch (e) { return; }
+    if (!obj || typeof obj !== 'object') return;
+    for (var k in DEFAULTS) {
+      if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+      var v = obj[k];
+      if (typeof v !== typeof DEFAULTS[k]) continue;
+      if (typeof v === 'number') {
+        if (!isFinite(v)) continue;
+        var rg = RANGES[k] || PREF_RANGES[k];
+        if (rg) v = clamp(v, rg[0], rg[1]);
+      }
+      settings[k] = v;
+    }
+    if (!MODE_NAMES[settings.mode]) settings.mode = DEFAULTS.mode;
+    if (!PALETTES[settings.palette]) settings.palette = DEFAULTS.palette;
+    if (settings.fpsCap !== 30 && settings.fpsCap !== 60) settings.fpsCap = 60;
+    if (PulsarPerf.get(settings.profile) !== PulsarPerf.PROFILES[settings.profile]) settings.profile = DEFAULTS.profile;
+    if (PulsarMotion.PREFS.indexOf(settings.motion) < 0) settings.motion = DEFAULTS.motion;
+    if (settings.haptics !== 'off' && settings.haptics !== 'touch' && settings.haptics !== 'beat') settings.haptics = 'touch';
+    settings.symmetry = Math.round(settings.symmetry);
+    settings.density = Math.round(settings.density);
+  }
+  var saveTimer = 0;
+  function writeSettings() {
+    saveTimer = 0;
+    try { window.localStorage.setItem(STORE_KEY, JSON.stringify(settings)); }
+    catch (e) { storageAvailable = false; updateStorageNote(); }
+  }
+  function saveSettings() {
+    if (!storageAvailable) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(writeSettings, 250);
+  }
+  // Writes a pending save now, so a change made just before the page is
+  // hidden, reloaded or closed isn't lost.
+  function flushSettings() {
+    if (!saveTimer) return;
+    clearTimeout(saveTimer);
+    writeSettings();
+  }
+  loadSettings();
+
+  // The values the simulation reads. They equal settings except while a scene
+  // blends in; settings always holds what the user asked for.
+  var trans = PulsarTransition.create(settings,
+    ['energy', 'sensitivity', 'smoothing', 'speed', 'trail', 'glow', 'touchStrength',
+      'bassGain', 'midGain', 'trebleGain', 'noiseGate', 'density'],
+    ['symmetry']);
+  var live = trans.live;
+
+  /* =====================================================================
+     Canvas
+     ===================================================================== */
+  var canvas = $('stage');
+  var ctx = null;
+  try { ctx = canvas.getContext('2d', { alpha: false }); } catch (e) { ctx = null; }
+  if (!ctx) { $('fatal').hidden = false; return; }
+
+  /* =====================================================================
+     Haptics (best effort: the web has no universal haptics API)
+     - Android and other browsers with navigator.vibrate get real patterns.
+     - iPhone Safari has no vibrate. Toggling an <input type="checkbox" switch>
+       plays the system switch tick. Field taps toggle one natively through the
+       canvas <label>; other ticks use a programmatic label click, which
+       newer iOS releases may ignore.
+     ===================================================================== */
+  var coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0;
+  var canVibrate = typeof navigator.vibrate === 'function' && coarsePointer;
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var iosSwitchHaptics = isIOS && typeof navigator.vibrate !== 'function';
+  var hapticsAvailable = canVibrate || iosSwitchHaptics;
+  var hasInteracted = false, lastHaptic = 0, lastBeatHaptic = 0, iosTapPending = 0;
+  var HAPTIC = {
+    tap: { v: 16, ios: 1 },
+    burst: { v: [14, 40, 22], ios: 1 },
+    ui: { v: 10, ios: 1 },
+    detent: { v: 6, ios: 1 },
+    engage: { v: 9, ios: 1 },
+    beat: { v: 12, ios: 1 },
+    downbeat: { v: 24, ios: 1 },
+    confirm: { v: [12, 70, 12], ios: 2 },
+    error: { v: [30, 60, 30, 60, 30], ios: 3 }
+  };
+  function userActivated() {
+    if (navigator.userActivation) return navigator.userActivation.hasBeenActive;
+    return hasInteracted;
+  }
+  function hapticsOn(kind) {
+    if (!hapticsAvailable || settings.haptics === 'off') return false;
+    if ((kind === 'beat' || kind === 'downbeat') && settings.haptics !== 'beat') return false;
+    return true;
+  }
+  function iosTick() {
+    var el = document.getElementById('hapticTick');
+    if (!el) return;
+    var prev = document.activeElement;
+    try { el.click(); } catch (e) {}
+    // Clicking the label moves focus to its hidden switch; give it back.
+    var now = document.activeElement;
+    if (now && now !== prev && now.blur) { try { now.blur(); } catch (e) {} }
+    if (prev && prev !== document.body && prev.focus && document.activeElement !== prev) {
+      try { prev.focus({ preventScroll: true }); } catch (e) {}
+    }
+  }
+  function haptic(kind) {
+    if (!hapticsOn(kind)) return;
+    var now = performance.now();
+    if (now - lastHaptic < 35) return;
+    lastHaptic = now;
+    var h = HAPTIC[kind] || HAPTIC.ui;
+    if (canVibrate) {
+      if (!userActivated()) return;      // browsers ignore vibration before the first tap
+      try { navigator.vibrate(h.v); } catch (e) {}
+    } else if (iosSwitchHaptics) {
+      iosTick();
+      for (var k = 1; k < h.ios; k++) setTimeout(iosTick, k * 90);
+    }
+  }
+  function notchOf(el) {
+    if (el.getAttribute('data-key') === 'symmetry') return Math.round(+el.value);
+    var min = +el.min, max = +el.max;
+    return Math.round((+el.value - min) / (max - min) * 10);
+  }
+  function updateHapticNote() {
+    var el = $('hapticNote');
+    if (!el) return;
+    if (canVibrate) {
+      el.textContent = 'Uses your device’s vibration motor. Browsers wait for your first tap before allowing vibration, and embedded views or system settings can block it.';
+    } else if (iosSwitchHaptics) {
+      el.textContent = 'iPhone allows web pages only a light system tick, so patterns play as single ticks. Field taps use Safari’s native switch tick; other haptics may not play on newer iOS versions. System Haptics must be on in Settings, under Sounds & Haptics.';
+    } else {
+      el.textContent = 'This device or browser doesn’t offer haptics, so this setting has no effect here.';
+    }
+  }
+  ['pointerup', 'keydown', 'click'].forEach(function (t) {
+    document.addEventListener(t, function () { hasInteracted = true; }, true);
+  });
+  (function () {
+    var surface = $('surface'), sw = $('surfaceSwitch');
+    if (!surface || !sw) return;
+    // The canvas sits inside a <label>, so a real tap toggles the hidden switch
+    // and iPhone plays its native tick. Allow that only for taps that produced
+    // a shockwave while touch haptics are on; cancel every other activation.
+    surface.addEventListener('click', function (e) {
+      if (e.target === sw) return;
+      var allow = iosSwitchHaptics && hapticsOn('tap') && iosTapPending && performance.now() - iosTapPending < 400;
+      iosTapPending = 0;
+      if (!allow) e.preventDefault();
+    });
+    sw.addEventListener('change', function () { try { sw.blur(); } catch (e) {} });
+  })();
+
+  /* =====================================================================
+     Palettes and pre-rendered glow sprites
+     ===================================================================== */
+  // All particle sprites share one atlas: cells 0..STEPS-1 hold the palette
+  // glows and the last cell holds the spark. One source texture lets the
+  // browser batch thousands of draws; the 2px gutters stop bilinear bleed.
+  var STEPS = 10;
+  var SPR = 64;
+  var CELL = SPR + 2;
+  var SPARK_X = STEPS * CELL;
+  var atlas = document.createElement('canvas');
+  atlas.width = (STEPS + 1) * CELL;
+  atlas.height = SPR;
+  var atlasCtx = atlas.getContext('2d');
+  var atlasSrc = atlas, atlasGen = 0;
+  var coreSprite = document.createElement('canvas');
+  coreSprite.width = coreSprite.height = 128;
+  var palCSS = [];
+  for (var pi = 0; pi < STEPS; pi++) palCSS.push('#ffffff');
+
+  function hexToRgb(h) {
+    var n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function palFromName(name) { return PALETTES[name].colors.map(hexToRgb); }
+  var palNow = palFromName(settings.palette);
+  var palFrom = palNow.map(function (c) { return c.slice(); });
+  var palTo = palNow.map(function (c) { return c.slice(); });
+  var palT = 1, palDur = 0.8;
+  var tmpC = [0, 0, 0];
+
+  function samplePal(pal, t, out) {
+    var s = clamp(t, 0, 1) * 2;
+    var k = s < 1 ? 0 : 1;
+    var f = s - k;
+    for (var j = 0; j < 3; j++) out[j] = pal[k][j] + (pal[k + 1][j] - pal[k][j]) * f;
+  }
+  function rgba(c, a, white) {
+    var w = white || 0;
+    return 'rgba(' + Math.round(c[0] + (255 - c[0]) * w) + ',' + Math.round(c[1] + (255 - c[1]) * w) + ',' +
+      Math.round(c[2] + (255 - c[2]) * w) + ',' + a + ')';
+  }
+  function buildSprites(pal) {
+    var h = SPR / 2;
+    var g = atlasCtx;
+    g.clearRect(0, 0, SPARK_X, SPR);
+    for (var s = 0; s < STEPS; s++) {
+      samplePal(pal, s / (STEPS - 1), tmpC);
+      var ox = s * CELL;
+      var gr = g.createRadialGradient(ox + h, h, 0, ox + h, h, h);
+      gr.addColorStop(0, rgba(tmpC, 1, 0.75));
+      gr.addColorStop(0.1, rgba(tmpC, 0.95, 0.32));
+      gr.addColorStop(0.28, rgba(tmpC, 0.45, 0));
+      gr.addColorStop(0.6, rgba(tmpC, 0.1, 0));
+      gr.addColorStop(1, rgba(tmpC, 0, 0));
+      g.fillStyle = gr;
+      g.fillRect(ox, 0, SPR, SPR);
+      palCSS[s] = rgba(tmpC, 1, 0.1);
+    }
+    useAtlasCanvas();
+    var cg = coreSprite.getContext('2d');
+    cg.clearRect(0, 0, 128, 128);
+    var cgr = cg.createRadialGradient(64, 64, 0, 64, 64, 64);
+    cgr.addColorStop(0, rgba(pal[0], 0.9, 0.7));
+    cgr.addColorStop(0.18, rgba(pal[0], 0.55, 0.1));
+    cgr.addColorStop(0.45, rgba(pal[1], 0.18, 0));
+    cgr.addColorStop(0.75, rgba(pal[2], 0.05, 0));
+    cgr.addColorStop(1, rgba(pal[2], 0, 0));
+    cg.fillStyle = cgr;
+    cg.fillRect(0, 0, 128, 128);
+  }
+  function buildSpark() {
+    var g = atlasCtx;
+    var h = SPR / 2, ox = SPARK_X;
+    g.clearRect(ox, 0, SPR, SPR);
+    var gr = g.createRadialGradient(ox + h, h, 0, ox + h, h, h * 0.5);
+    gr.addColorStop(0, 'rgba(255,255,255,1)');
+    gr.addColorStop(0.3, 'rgba(235,245,255,0.5)');
+    gr.addColorStop(1, 'rgba(220,235,255,0)');
+    g.fillStyle = gr;
+    g.fillRect(ox, 0, SPR, SPR);
+    var lg = g.createLinearGradient(ox, h, ox + SPR, h);
+    lg.addColorStop(0, 'rgba(255,255,255,0)');
+    lg.addColorStop(0.5, 'rgba(255,255,255,0.85)');
+    lg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = lg;
+    g.fillRect(ox, h - 0.75, SPR, 1.5);
+    var vg = g.createLinearGradient(ox + h, 0, ox + h, SPR);
+    vg.addColorStop(0, 'rgba(255,255,255,0)');
+    vg.addColorStop(0.5, 'rgba(255,255,255,0.85)');
+    vg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = vg;
+    g.fillRect(ox + h - 0.75, 0, 1.5, SPR);
+    useAtlasCanvas();
+  }
+  // Draw from the atlas canvas while it is changing, then promote a snapshot
+  // to an ImageBitmap once it is stable; bitmap draws cost less per call.
+  function useAtlasCanvas() {
+    atlasGen++;
+    if (atlasSrc !== atlas && atlasSrc.close) atlasSrc.close();
+    atlasSrc = atlas;
+  }
+  function promoteAtlas() {
+    if (typeof createImageBitmap !== 'function') return;
+    var gen = atlasGen;
+    try {
+      createImageBitmap(atlas).then(function (bm) {
+        if (gen !== atlasGen || atlasSrc !== atlas) { if (bm.close) bm.close(); return; }
+        atlasSrc = bm;
+      }, function () {});
+    } catch (e) { /* keep drawing from the canvas */ }
+  }
+  function setAccentVars(pal) {
+    var st = document.documentElement.style;
+    st.setProperty('--accent', rgba(pal[0], 1, 0));
+    st.setProperty('--accent-rgb', Math.round(pal[0][0]) + ',' + Math.round(pal[0][1]) + ',' + Math.round(pal[0][2]));
+    st.setProperty('--accent2-rgb', Math.round(pal[2][0]) + ',' + Math.round(pal[2][1]) + ',' + Math.round(pal[2][2]));
+  }
+
+  /* =====================================================================
+     Viewport and quality levels
+     ===================================================================== */
+  var QUALITY = PulsarPerf.QUALITY;
+  // The active profile and the limits it implies. settings keeps what the user
+  // asked for; these hold what is actually used, so switching profiles never
+  // rewrites density, glow or the frame rate choice.
+  var prof = PulsarPerf.get(settings.profile);
+  // Motion limits (see PulsarMotion), from the motion preference, the system
+  // setting and the burst control. speedNow is this frame's speed after them.
+  var reduceMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function systemReducedMotion() { return !!(reduceMotionQuery && reduceMotionQuery.matches); }
+  var motion = PulsarMotion.resolve(settings.motion, systemReducedMotion(), settings.bursts, {});
+  var speedNow = 1;
+  var effCap = PulsarPerf.fpsCap(prof, settings.fpsCap), sparkK = prof.sparks * motion.sparks;
+  var qLevel = prof.minLevel, qBad = 0, qGood = 0, qUpBlockedUntil = 0, qBackoff = 15000, qualityToastShown = false;
+  var W = 1, H = 1, S = 1, invS = 1, scale = 1, sizeScale = 1, needsResize = true, canvasCleared = false;
+  var homeX = 0, homeY = 0, uiEase = 1;
+
+  /* =====================================================================
+     Particle storage (structure of arrays, allocated once)
+     ===================================================================== */
+  var MAXP = 2000;
+  var px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+  var vx = new Float32Array(MAXP), vy = new Float32Array(MAXP);
+  var seed = new Float32Array(MAXP), seed2 = new Float32Array(MAXP);
+  var psize = new Float32Array(MAXP), orb = new Float32Array(MAXP);
+  var life = new Float32Array(MAXP), maxLife = new Float32Array(MAXP);
+  var fadeIn = new Float32Array(MAXP), spark = new Float32Array(MAXP);
+  var da = new Float32Array(MAXP), ds = new Float32Array(MAXP);
+  var dc = new Uint8Array(MAXP);
+  var N = 0;
+
+  /* =====================================================================
+     Audio state
+     ===================================================================== */
+  var audio = { level: 0, bass: 0, mid: 0, treble: 0, pulse: 0 };
+  var rawB = 0, rawM = 0, rawT = 0;
+  var inputMode = 'demo';               // 'demo' | 'requesting' | 'mic'
+  var micCtx = null, micStream = null, micSource = null, analyser = null, micSink = null, freq = null;
+  var micReq = 0, micFresh = false, micStoppedInBackground = false;
+  var bins = [1, 10, 11, 84, 85, 341];
+  var nFloor = [1, 1, 1], nPeak = [0.15, 0.15, 0.15];
+  var bassAvg = 0, beatCool = 0, beatCount = 0;
+  var demoT = 0, demoBeat = -1;
+
+  /* =====================================================================
+     Shockwaves
+     ===================================================================== */
+  var SWMAX = 12;
+  var swx = new Float32Array(SWMAX), swy = new Float32Array(SWMAX), swr = new Float32Array(SWMAX);
+  var sws = new Float32Array(SWMAX), swl = new Float32Array(SWMAX);
+  var swc = new Uint8Array(SWMAX);
+  var aw = new Uint8Array(SWMAX);
+  var awN = 0, swNext = 0, shockBand = 1, shockBandIn = 1;
+
+  /* =====================================================================
+     Pointers (multitouch)
+     ===================================================================== */
+  var PTRMAX = 6;
+  var pointerList = [];
+  var gesture = PulsarTouch.createGesture(PTRMAX);   // release-pulse gesture state
+  var FPMAX = 4;
+  var fpx = new Float32Array(FPMAX), fpy = new Float32Array(FPMAX);
+  var fpvx = new Float32Array(FPMAX), fpvy = new Float32Array(FPMAX);
+  var fpAttr = new Float32Array(FPMAX), fpSwirl = new Float32Array(FPMAX), fpRad = new Float32Array(FPMAX);
+  var fpId = [0, 0, 0, 0];
+  var fpN = 0, fpStir = 0, prevFpN = 0;
+  // Touch strength for this frame (0-2). Scales the continuous finger forces;
+  // taps, Geometry's twist and pinch, and gesture tracking ignore it.
+  var touchK = 1;
+
+  /* =====================================================================
+     Loop state
+     ===================================================================== */
+  var rafId = 0, running = false, lastTs = 0, frameCount = 0, simT = 0, errorCount = 0;
+  var frozen = false;                   // Freeze: the picture holds; see frozenFrame()
+  var ivBuf = new Float32Array(256), ivSort = new Float32Array(256);
+  var ivN = 0, winStart = 0, winFrames = 0, bestIv = 1000, fpsValue = 0;
+
+  /* =====================================================================
+     Shared physics helpers
+     ===================================================================== */
+  var FLx = 0, FLy = 0;
+  // Divergence-free flow: velocity is the curl of a moving stream function.
+  function flow(x, y, t, turb) {
+    var X = x * invS, Y = y * invS;
+    var a1 = 2.1 * X + 0.31 * t, b1 = 1.7 * Y - 0.27 * t;
+    var sa1 = Math.sin(a1), ca1 = Math.cos(a1), sb1 = Math.sin(b1), cb1 = Math.cos(b1);
+    var dX = 2.1 * ca1 * cb1;
+    var dY = -1.7 * sa1 * sb1;
+    var c2 = Math.cos(1.3 * X + 2.6 * Y + 0.43 * t) * 0.6;
+    dX += 1.3 * c2;
+    dY += 2.6 * c2;
+    if (turb > 0) {
+      var s3 = Math.sin(5.3 * X - 4.1 * Y + 0.9 * t) * 0.35 * turb;
+      dX -= 5.3 * s3;
+      dY += 4.1 * s3;
+    }
+    FLx = dY * 0.33;
+    FLy = -dX * 0.33;
+  }
+
+  function applyPointers(i, dt) {
+    if (touchK <= 0) return;
+    for (var k = 0; k < fpN; k++) {
+      var dx = px[i] - fpx[k], dy = py[i] - fpy[k];
+      var d2 = dx * dx + dy * dy;
+      var R = fpRad[k];
+      if (d2 > R * R * 9) continue;
+      var d = Math.sqrt(d2) + 0.5;
+      var fall = touchK / (1 + d2 / (R * R));
+      var nx = dx / d, ny = dy / d;
+      var a = fpAttr[k] * fall * dt;
+      vx[i] -= nx * a;
+      vy[i] -= ny * a;
+      var sw = fpSwirl[k] * fall * dt;
+      vx[i] += -ny * sw;
+      vy[i] += nx * sw;
+      var st = fpStir * fall * dt;
+      vx[i] += fpvx[k] * st;
+      vy[i] += fpvy[k] * st;
+    }
+  }
+
+  function applyShock(i, dt) {
+    for (var j = 0; j < awN; j++) {
+      var k = aw[j];
+      var dx = px[i] - swx[k], dy = py[i] - swy[k];
+      var d = Math.sqrt(dx * dx + dy * dy) + 0.5;
+      var off = d - swr[k];
+      if (off > shockBand || off < -shockBandIn) continue;
+      var w = off > 0 ? 1 - off / shockBand : 1 + off / shockBandIn;
+      var f = w * sws[k] * swl[k] * S * 9 * dt;
+      vx[i] += dx / d * f;
+      vy[i] += dy / d * f;
+    }
+  }
+
+  function integrate(i, dt, vmax) {
+    var x = vx[i], y = vy[i];
+    var v2 = x * x + y * y;
+    if (v2 > vmax * vmax) {
+      var k = vmax / Math.sqrt(v2);
+      x *= k; y *= k;
+      vx[i] = x; vy[i] = y;
+    }
+    px[i] += x * dt;
+    py[i] += y * dt;
+    // Recover any particle that has gone numerically invalid.
+    if (!(px[i] > -1e5 && px[i] < 1e5 && py[i] > -1e5 && py[i] < 1e5)) {
+      px[i] = homeX; py[i] = homeY; vx[i] = 0; vy[i] = 0;
+    }
+  }
+
+  function updateSpark(i, dt, chance) {
+    var s = spark[i];
+    if (s > 0) s = Math.max(0, s - dt * 3.2);
+    else if (Math.random() < chance * sparkK) s = 1;
+    spark[i] = s;
+  }
+
+  function toIdx(v) {
+    var k = (v * (STEPS - 1) + 0.5) | 0;
+    return k < 0 ? 0 : k > STEPS - 1 ? STEPS - 1 : k;
+  }
+
+  function stepFade(i, dt) {
+    var f = fadeIn[i];
+    if (f < 1) { f = Math.min(1, f + dt * 1.4); fadeIn[i] = f; }
+    return f;
+  }
+
+  /* =====================================================================
+     Mode 1: Vortex
+     ===================================================================== */
+  var vcx = 0, vcy = 0;
+  var Vortex = {
+    trailBoost: 0,
+    enter: function () {},
+    spawn: function (i) {
+      var a = Math.random() * TAU, r = orb[i] * S * (0.5 + Math.random());
+      px[i] = vcx + Math.cos(a) * r;
+      py[i] = vcy + Math.sin(a) * r;
+    },
+    update: function (dt) {
+      var b = audio.bass, m = audio.mid, tr = audio.treble, lv = audio.level, pu = audio.pulse;
+      var sp = speedNow;
+      var tx = homeX, ty = homeY, kc = 0.9;
+      // The vortex center follows the first finger; touch strength sets how hard.
+      if (fpN > 0 && touchK > 0) { tx = fpx[0]; ty = fpy[0]; kc = 0.9 + 4.6 * touchK; }
+      var kk = 1 - Math.exp(-dt * kc);
+      vcx += (tx - vcx) * kk;
+      vcy += (ty - vcy) * kk;
+
+      for (var k = 0; k < fpN; k++) {
+        if (k === 0) { fpRad[k] = S * 0.07; fpAttr[k] = -S * 12; fpSwirl[k] = 0; }
+        else { fpRad[k] = S * 0.17; fpAttr[k] = S * 1.6; fpSwirl[k] = -S * 4.5 * ((k & 1) ? 1 : -1); }
+      }
+      fpStir = 1.2;
+
+      var steer = 1 - Math.exp(-dt * 3.2);
+      var expand = 1 + 0.55 * b + 0.4 * pu;
+      var turbA = S * (0.025 + 0.38 * m);
+      var jit = S * 0.8 * tr * tr * motion.jitter;
+      var T = simT;
+      var twk = T * 3;
+      var sparkChance = tr * tr * dt * 0.35;
+      var vmax = S * 3;
+      var armT = T * 0.55 * sp;
+
+      for (var i = 0; i < N; i++) {
+        var x = px[i], y = py[i];
+        var dx = x - vcx, dy = y - vcy;
+        var r = Math.sqrt(dx * dx + dy * dy) + 0.001;
+        var ux = dx / r, uy = dy / r;
+        var rn = orb[i];
+        var ang = Math.atan2(dy, dx);
+        var arm = Math.sin(2 * ang - 3.2 * Math.log(r * invS + 0.05) - armT);
+        var rt = rn * S * expand * (1 + 0.11 * arm * (0.6 + m));
+        var om = sp * (0.55 + 1.35 * (0.47 - rn) / 0.42) * (1 + 0.55 * m + 0.35 * pu);
+        var vt = om * Math.min(r, rn * S * 1.6 + S * 0.05);
+        var rad = (rt - r) * 2.4;
+        flow(x, y, T, 0.6 + m);
+        var dvx = -uy * vt + ux * rad + FLx * turbA;
+        var dvy = ux * vt + uy * rad + FLy * turbA;
+        if (jit > 0.4) {
+          dvx += (Math.random() - 0.5) * jit;
+          dvy += (Math.random() - 0.5) * jit;
+        }
+        vx[i] += (dvx - vx[i]) * steer;
+        vy[i] += (dvy - vy[i]) * steer;
+        if (fpN) applyPointers(i, dt);
+        if (awN) applyShock(i, dt);
+        integrate(i, dt, vmax);
+
+        var f = stepFade(i, dt);
+        var rnN = (rn - 0.05) / 0.42;
+        dc[i] = toIdx(rnN * 0.86 + seed2[i] * 0.14);
+        ds[i] = psize[i] * (1 + 0.75 * b * (1 - rnN) + 0.35 * pu);
+        da[i] = f * (0.3 + 0.38 * lv + 0.22 * (1 - rnN)) * (0.78 + 0.22 * Math.sin(twk + seed[i] * 40));
+        updateSpark(i, dt, sparkChance);
+      }
+    },
+    drawBack: function () {
+      var b = audio.bass, pu = audio.pulse;
+      var r = S * (0.15 + 0.15 * b + 0.12 * pu);
+      ctx.globalAlpha = clamp(0.16 + 0.3 * audio.level + 0.25 * pu, 0, 1);
+      ctx.drawImage(coreSprite, vcx - r, vcy - r, r * 2, r * 2);
+      ctx.lineWidth = 1.2;
+      for (var k = 0; k < 3; k++) {
+        var rr = S * (0.13 + 0.115 * k) * (1 + 0.45 * b + 0.3 * pu);
+        var a0 = simT * (0.62 - 0.21 * k) * speedNow * ((k & 1) ? -1 : 1) + k * 2.1;
+        ctx.globalAlpha = 0.06 + 0.14 * audio.mid;
+        ctx.strokeStyle = palCSS[k * 4 + 1];
+        ctx.beginPath();
+        ctx.arc(vcx, vcy, rr, a0, a0 + 0.9 + 0.8 * audio.treble);
+        ctx.stroke();
+      }
+    },
+    onBeat: function (s, g) { if (s > 0.85) addShockwave(vcx, vcy, (0.35 + 0.3 * s) * g); },
+    onTap: null
+  };
+
+  /* =====================================================================
+     Mode 2: Fluid
+     ===================================================================== */
+  var Fluid = {
+    trailBoost: 0.3,
+    enter: function () {
+      for (var i = 0; i < N; i++) life[i] = Math.random() * maxLife[i];
+    },
+    spawn: function (i) {
+      px[i] = Math.random() * W;
+      py[i] = Math.random() * H;
+    },
+    respawn: function (i) {
+      px[i] = Math.random() * W;
+      py[i] = Math.random() * H;
+      vx[i] = 0; vy[i] = 0;
+      life[i] = 0;
+      maxLife[i] = 2.5 + Math.random() * 6;
+    },
+    update: function (dt) {
+      var b = audio.bass, m = audio.mid, tr = audio.treble, lv = audio.level, pu = audio.pulse;
+      var sp = speedNow;
+      var spd = S * 0.22 * sp * (0.5 + 1.5 * lv + 0.7 * pu);
+      var turb = 0.2 + 1.8 * m;
+      var steer = 1 - Math.exp(-dt * 2.2);
+      for (var k = 0; k < fpN; k++) {
+        fpRad[k] = S * 0.17; fpAttr[k] = 0; fpSwirl[k] = S * 3.2 * ((k & 1) ? -1 : 1);
+      }
+      fpStir = 5;
+      var T = simT * 0.8;
+      var margin = 40;
+      var sparkChance = tr * tr * dt * 0.2;
+      var vmax = S * 3;
+      for (var i = 0; i < N; i++) {
+        flow(px[i], py[i], T, turb);
+        vx[i] += (FLx * spd - vx[i]) * steer;
+        vy[i] += (FLy * spd - vy[i]) * steer;
+        if (fpN) applyPointers(i, dt);
+        if (awN) applyShock(i, dt);
+        integrate(i, dt, vmax);
+        life[i] += dt;
+        var x = px[i], y = py[i];
+        if (life[i] > maxLife[i] || x < -margin || x > W + margin || y < -margin || y > H + margin) this.respawn(i);
+        var L = life[i], ML = maxLife[i];
+        var env = Math.min(1, L * 1.4) * Math.min(1, (ML - L) * 1.1);
+        var svx = vx[i], svy = vy[i];
+        var hot = clamp(Math.sqrt(svx * svx + svy * svy) * invS * 2.2, 0, 1);
+        dc[i] = toIdx(0.1 + 0.18 * seed[i] + 0.72 * hot);
+        ds[i] = psize[i] * (0.75 + 0.45 * b + 0.3 * hot);
+        da[i] = env * (0.28 + 0.42 * lv + 0.2 * hot);
+        updateSpark(i, dt, sparkChance);
+      }
+    },
+    drawBack: null,
+    onBeat: null,
+    onTap: null
+  };
+
+  /* =====================================================================
+     Mode 3: Geometry
+     ===================================================================== */
+  var LAYERS = 6;
+  var GEO_KIND = [0, 1, 2, 0, 3, 4];   // polygon, star, rose, offset polygon, wave ring, double polygon
+  var gR = new Float32Array(LAYERS), gA = new Float32Array(LAYERS), gAng = new Float32Array(LAYERS);
+  var gBand = new Float32Array(LAYERS);
+  var gCnt = new Int32Array(LAYERS);
+  var gN = 6, gWave = 0.05, geoRot = 0, geoRotVel = 0, geoScale = 1, geoScaleT = 1;
+  var geoPrevAng = 0, geoPrevId = -1, geoHasPrev = false, pinchD0 = 0, pinchS0 = 1, geoDetent = 0;
+  var GOx = 0, GOy = 0;
+
+  function polyPoint(u, sides, R, rot, inner) {
+    var f = u * sides;
+    var k = Math.floor(f);
+    var fr = f - k;
+    var step = TAU / sides;
+    var a0 = rot + k * step, a1 = a0 + step;
+    var r0 = (inner !== 1 && (k & 1)) ? R * inner : R;
+    var r1 = (inner !== 1 && ((k + 1) & 1)) ? R * inner : R;
+    var x0 = Math.cos(a0) * r0, y0 = Math.sin(a0) * r0;
+    GOx = x0 + (Math.cos(a1) * r1 - x0) * fr;
+    GOy = y0 + (Math.sin(a1) * r1 - y0) * fr;
+  }
+  function layerPoint(L, u) {
+    var R = gR[L], A = gA[L], n = gN, th, rr;
+    switch (GEO_KIND[L]) {
+      case 0: polyPoint(u, n, R, L === 3 ? A + Math.PI / n : A, 1); break;
+      case 1: polyPoint(u, n * 2, R, A, 0.52); break;
+      case 2:
+        th = A + u * TAU;
+        rr = R * (0.7 + 0.3 * Math.cos(n * u * TAU));
+        GOx = Math.cos(th) * rr; GOy = Math.sin(th) * rr;
+        break;
+      case 3:
+        th = A + u * TAU;
+        rr = R * (1 + gWave * Math.sin(n * 2 * u * TAU + simT * 2.4));
+        GOx = Math.cos(th) * rr; GOy = Math.sin(th) * rr;
+        break;
+      default: polyPoint(u, n * 2, R, A, 1);
+    }
+  }
+
+  var Geometry = {
+    trailBoost: -0.08,
+    enter: function () { geoScale = 0.55; },
+    spawn: function (i) {
+      var a = Math.random() * TAU, r = S * 0.04 * Math.random();
+      px[i] = homeX + Math.cos(a) * r;
+      py[i] = homeY + Math.sin(a) * r;
+    },
+    update: function (dt) {
+      var b = audio.bass, m = audio.mid, tr = audio.treble, pu = audio.pulse;
+      var sp = speedNow;
+      gN = Math.round(live.symmetry);
+      gWave = 0.04 + 0.12 * tr;
+      var cx = homeX, cy = homeY;
+
+      // One finger twists the structure; two fingers pinch to scale it.
+      if (fpN >= 1) {
+        var ddx = fpx[0] - cx, ddy = fpy[0] - cy;
+        var minR = S * 0.04;
+        if (ddx * ddx + ddy * ddy > minR * minR) {
+          var angP = Math.atan2(ddy, ddx);
+          if (geoHasPrev && geoPrevId === fpId[0]) {
+            var dA = angP - geoPrevAng;
+            if (dA > Math.PI) dA -= TAU; else if (dA < -Math.PI) dA += TAU;
+            geoRot += dA;
+            geoRotVel += (dA / Math.max(dt, 0.001) - geoRotVel) * 0.3;
+          }
+          geoPrevAng = angP; geoPrevId = fpId[0]; geoHasPrev = true;
+        } else geoHasPrev = false;
+      } else {
+        geoHasPrev = false;
+        geoRot += geoRotVel * dt;
+        geoRotVel *= Math.exp(-dt * 1.6);
+      }
+      geoRotVel = clamp(geoRotVel, -6, 6);
+      // Ratchet ticks: one detent per half symmetry step while twisting.
+      var detent = Math.floor(geoRot / (TAU / (gN * 2)));
+      if (detent !== geoDetent) {
+        if (fpN >= 1 || Math.abs(geoRotVel) > 0.25) haptic('detent');
+        geoDetent = detent;
+      }
+      if (fpN >= 2) {
+        var pd = Math.sqrt((fpx[1] - fpx[0]) * (fpx[1] - fpx[0]) + (fpy[1] - fpy[0]) * (fpy[1] - fpy[0]));
+        if (pinchD0 <= 0) { pinchD0 = Math.max(20, pd); pinchS0 = geoScale; }
+        geoScaleT = clamp(pinchS0 * pd / pinchD0, 0.45, 1.9);
+      } else { pinchD0 = 0; geoScaleT = 1; }
+      geoScale += (geoScaleT - geoScale) * (1 - Math.exp(-dt * (fpN >= 2 ? 10 : 1.8)));
+
+      for (var L = 0; L < LAYERS; L++) {
+        var band = L < 2 ? b : L < 4 ? m : tr;
+        gBand[L] = band;
+        var dir = (L & 1) ? -1 : 1;
+        gAng[L] += dt * sp * dir * (0.1 + 0.045 * L) * (1 + 1.3 * m);
+        gA[L] = gAng[L] + geoRot * (1 - L * 0.08);
+        gR[L] = S * (0.075 + 0.07 * L) * geoScale * (1 + 0.34 * band + (L < 3 ? 0.24 : 0.1) * pu);
+        gCnt[L] = Math.max(1, Math.floor((N - 1 - L) / LAYERS) + 1);
+      }
+
+      var K = 46, C = 2 * Math.sqrt(K) * 0.62;
+      var Rd = S * 0.2, Rd2 = Rd * Rd, push = S * 0.13 * touchK;
+      var pushN = touchK > 0 ? fpN : 0;
+      var T = simT;
+      var sparkChance = tr * tr * dt * 0.3;
+      var vmax = S * 4;
+      for (var i = 0; i < N; i++) {
+        var Li = i % LAYERS;
+        var j = (i / LAYERS) | 0;
+        layerPoint(Li, (j + 0.5) / gCnt[Li]);
+        var bl = gBand[Li];
+        var sh = S * (0.004 + 0.012 * bl);
+        var tx = cx + GOx + Math.cos(T * 2.6 + seed[i] * TAU) * sh;
+        var ty = cy + GOy + Math.sin(T * 2.2 + seed2[i] * TAU) * sh;
+        for (var k = 0; k < pushN; k++) {
+          var qx = tx - fpx[k], qy = ty - fpy[k];
+          var q2 = qx * qx + qy * qy;
+          if (q2 < Rd2) {
+            var qd = Math.sqrt(q2) + 0.5;
+            var q = 1 - qd / Rd;
+            var p = q * q * push;
+            tx += qx / qd * p;
+            ty += qy / qd * p;
+          }
+        }
+        vx[i] += ((tx - px[i]) * K - vx[i] * C) * dt;
+        vy[i] += ((ty - py[i]) * K - vy[i] * C) * dt;
+        if (awN) applyShock(i, dt);
+        integrate(i, dt, vmax);
+        var f = stepFade(i, dt);
+        dc[i] = toIdx((Li / (LAYERS - 1)) * 0.82 + 0.18 * bl);
+        ds[i] = psize[i] * (0.85 + 0.65 * bl + 0.25 * pu);
+        da[i] = f * (0.4 + 0.42 * bl);
+        updateSpark(i, dt, sparkChance);
+      }
+    },
+    drawBack: function () {
+      var cx = homeX, cy = homeY;
+      ctx.lineWidth = 1;
+      for (var L = 0; L < LAYERS; L++) {
+        var kind = GEO_KIND[L];
+        var M = kind === 0 ? gN : (kind === 1 || kind === 4) ? gN * 2 : 120;
+        ctx.globalAlpha = 0.05 + 0.15 * gBand[L];
+        ctx.strokeStyle = palCSS[Math.round(L / (LAYERS - 1) * (STEPS - 1))];
+        ctx.beginPath();
+        for (var s = 0; s <= M; s++) {
+          layerPoint(L, s / M);
+          if (s === 0) ctx.moveTo(cx + GOx, cy + GOy); else ctx.lineTo(cx + GOx, cy + GOy);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.04 + 0.08 * audio.mid;
+      ctx.strokeStyle = palCSS[STEPS >> 1];
+      ctx.beginPath();
+      var r0 = gR[0] * 0.4, r1 = gR[LAYERS - 1] * 1.08;
+      for (var k = 0; k < gN; k++) {
+        var a = gA[0] + k * TAU / gN;
+        var c = Math.cos(a), sn = Math.sin(a);
+        ctx.moveTo(cx + c * r0, cy + sn * r0);
+        ctx.lineTo(cx + c * r1, cy + sn * r1);
+      }
+      ctx.stroke();
+      var r = S * (0.07 + 0.08 * audio.bass + 0.06 * audio.pulse);
+      ctx.globalAlpha = clamp(0.25 + 0.35 * audio.level, 0, 1);
+      ctx.drawImage(coreSprite, cx - r, cy - r, r * 2, r * 2);
+    },
+    onBeat: function (s, g) { if (s > 0.85) addShockwave(homeX, homeY, 0.3 * s * g); },
+    onTap: null
+  };
+
+  /* =====================================================================
+     Mode 4: Plasma
+     ===================================================================== */
+  var nodeX = new Float32Array(3), nodeY = new Float32Array(3), nodeFlash = new Float32Array(3);
+  var plasmaT = 0;
+  var Plasma = {
+    trailBoost: 0.1,
+    nodes: function (t) {
+      for (var k = 0; k < 3; k++) {
+        nodeX[k] = homeX + S * 0.27 * Math.sin(t * 0.23 + k * 2.094) * (1 + 0.25 * audio.bass);
+        nodeY[k] = homeY + S * 0.21 * Math.sin(t * 0.31 + k * 1.71 + 0.6);
+      }
+    },
+    enter: function () { this.nodes(plasmaT); },
+    spawn: function (i) {
+      var k = i % 3, a = Math.random() * TAU, r = S * 0.08 * Math.random();
+      px[i] = nodeX[k] + Math.cos(a) * r;
+      py[i] = nodeY[k] + Math.sin(a) * r;
+    },
+    update: function (dt) {
+      var b = audio.bass, m = audio.mid, tr = audio.treble, lv = audio.level, pu = audio.pulse;
+      var sp = speedNow;
+      plasmaT += dt * sp;
+      this.nodes(plasmaT);
+      var flashDecay = Math.exp(-dt * 2.8);
+      for (var n = 0; n < 3; n++) nodeFlash[n] *= flashDecay;
+
+      // First finger is a gravity well; the second repels, and so on.
+      for (var k = 0; k < fpN; k++) {
+        if ((k & 1) === 0) { fpRad[k] = S * 0.24; fpAttr[k] = S * 9; fpSwirl[k] = S * 2.6; }
+        else { fpRad[k] = S * 0.2; fpAttr[k] = -S * 13; fpSwirl[k] = 0; }
+      }
+      fpStir = 1.5;
+
+      var pull = S * 3.0 * sp * (0.7 + 0.9 * lv);
+      var core = S * 0.15 * (1 + 0.6 * b);
+      var swirlA = S * 2.2 * sp * (0.45 + m);
+      var turbA = S * (0.35 + 1.5 * m) * sp;
+      var damp = Math.exp(-dt * 1.9);
+      var kick = S * 3.5 * tr * tr * motion.jitter;
+      var T = simT * 1.7;
+      var margin = S * 0.02;
+      var wallK = 18 * dt;
+      var sparkChance = tr * tr * dt * 0.45;
+      var vmax = S * 3.2;
+      for (var i = 0; i < N; i++) {
+        var kn = i % 3;
+        var x = px[i], y = py[i];
+        var dx = nodeX[kn] - x, dy = nodeY[kn] - y;
+        var d = Math.sqrt(dx * dx + dy * dy) + 1;
+        var near = Math.min(1, d / core);
+        var ax = dx / d * pull * near;
+        var ay = dy / d * pull * near;
+        var sdir = kn === 1 ? -1 : 1;
+        ax += -dy / d * swirlA * near * sdir;
+        ay += dx / d * swirlA * near * sdir;
+        flow(x, y, T, 1 + 2 * m);
+        ax += FLx * turbA;
+        ay += FLy * turbA;
+        if (kick > 1) {
+          ax += (Math.random() - 0.5) * kick;
+          ay += (Math.random() - 0.5) * kick;
+        }
+        vx[i] = (vx[i] + ax * dt) * damp;
+        vy[i] = (vy[i] + ay * dt) * damp;
+        if (fpN) applyPointers(i, dt);
+        if (awN) applyShock(i, dt);
+        if (x < margin) vx[i] += (margin - x) * wallK;
+        else if (x > W - margin) vx[i] -= (x - W + margin) * wallK;
+        if (y < margin) vy[i] += (margin - y) * wallK;
+        else if (y > H - margin) vy[i] -= (y - H + margin) * wallK;
+        integrate(i, dt, vmax);
+        var f = stepFade(i, dt);
+        var svx = vx[i], svy = vy[i];
+        var hot = clamp(Math.sqrt(svx * svx + svy * svy) * invS * 0.55, 0, 1);
+        dc[i] = toIdx(0.08 + 0.22 * seed[i] + 0.7 * hot + 0.15 * tr);
+        ds[i] = psize[i] * (0.8 + 0.8 * hot + 0.4 * b);
+        da[i] = f * (0.26 + 0.46 * hot + 0.22 * lv);
+        updateSpark(i, dt, sparkChance);
+      }
+    },
+    drawBack: function () {
+      for (var k = 0; k < 3; k++) {
+        var fl = nodeFlash[k];
+        var r = S * (0.09 + 0.09 * audio.bass + 0.18 * fl);
+        ctx.globalAlpha = clamp(0.14 + 0.22 * audio.level + 0.5 * fl, 0, 1);
+        ctx.drawImage(coreSprite, nodeX[k] - r, nodeY[k] - r, r * 2, r * 2);
+      }
+    },
+    // g scales the whole eruption (the burst setting); 1 is full strength.
+    erupt: function (x, y, s, k, g) {
+      if (k >= 0) {
+        nodeFlash[k] = Math.max(nodeFlash[k], Math.min(1, s) * g);
+        addShockwave(x, y, 0.45 * s * g);
+      }
+      var R = S * 0.32, R2 = R * R, imp = S * (1.2 + 1.3 * s) * g;
+      for (var i = 0; i < N; i++) {
+        if (k >= 0 && i % 3 !== k) continue;
+        var dx = px[i] - x, dy = py[i] - y, d2 = dx * dx + dy * dy;
+        if (d2 > R2) continue;
+        var d = Math.sqrt(d2) + 1, q = 1 - d / R;
+        var f = imp * (0.4 + q) * (0.6 + 0.8 * Math.random());
+        vx[i] += dx / d * f;
+        vy[i] += dy / d * f;
+        if (Math.random() < 0.25) spark[i] = g;
+      }
+    },
+    onBeat: function (s, g) {
+      var k = beatCount % 3;
+      this.erupt(nodeX[k], nodeY[k], s, k, g);
+    },
+    onTap: function (x, y, g) { this.erupt(x, y, 1, -1, g); }
+  };
+
+  var MODES = { vortex: Vortex, fluid: Fluid, geometry: Geometry, plasma: Plasma };
+  var modeObj = MODES[settings.mode] || Vortex;
+
+  /* =====================================================================
+     Particle management
+     ===================================================================== */
+  function initParticle(i) {
+    seed[i] = Math.random();
+    seed2[i] = Math.random();
+    psize[i] = 0.85 + Math.pow(Math.random(), 2.4) * 2.8;
+    orb[i] = 0.05 + 0.42 * Math.pow(seed[i], 0.8);
+    life[i] = 0;
+    maxLife[i] = 3 + Math.random() * 6;
+    fadeIn[i] = 0;
+    spark[i] = 0;
+    vx[i] = 0; vy[i] = 0;
+    modeObj.spawn(i);
+  }
+  function setActiveCount(n) {
+    n = clamp(Math.round(n), 40, MAXP);
+    for (var i = N; i < n; i++) initParticle(i);
+    N = n;
+  }
+  function applyDensity() { setActiveCount(PulsarPerf.particles(prof, live.density, qLevel)); }
+
+  /* =====================================================================
+     Shockwaves
+     ===================================================================== */
+  function addShockwave(x, y, strength) {
+    var k = -1;
+    for (var j = 0; j < SWMAX; j++) { if (swl[j] <= 0) { k = j; break; } }
+    if (k < 0) { k = swNext; swNext = (swNext + 1) % SWMAX; }
+    swx[k] = x; swy[k] = y; swr[k] = S * 0.02;
+    sws[k] = strength; swl[k] = 1;
+    swc[k] = (Math.random() * STEPS) | 0;
+  }
+  function updateShockwaves(dt) {
+    awN = 0;
+    shockBand = S * 0.085;
+    shockBandIn = shockBand * 1.6;
+    for (var k = 0; k < SWMAX; k++) {
+      if (swl[k] <= 0) continue;
+      swr[k] += S * (1.0 + 0.45 * sws[k]) * dt;
+      swl[k] -= dt / 1.2;
+      if (swl[k] > 0) aw[awN++] = k; else swl[k] = 0;
+    }
+  }
+
+  /* =====================================================================
+     Viewport
+     ===================================================================== */
+  function clearCanvas() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  function resize() {
+    needsResize = false;
+    var nw = Math.max(1, Math.round(window.innerWidth || document.documentElement.clientWidth || 1));
+    var nh = Math.max(1, Math.round(window.innerHeight || document.documentElement.clientHeight || 1));
+    var dpr = window.devicePixelRatio || 1;
+    var s = Math.max(0.5, Math.min(dpr, QUALITY[qLevel].res));
+    var bw = Math.max(1, Math.round(nw * s)), bh = Math.max(1, Math.round(nh * s));
+    if (W > 1 && (nw !== W || nh !== H)) {
+      var sx = nw / W, sy = nh / H;
+      for (var i = 0; i < N; i++) { px[i] *= sx; py[i] *= sy; }
+      vcx *= sx; vcy *= sy;
+      for (var k = 0; k < SWMAX; k++) { swx[k] *= sx; swy[k] *= sy; }
+    }
+    W = nw; H = nh;
+    S = Math.min(W, H);
+    invS = 1 / S;
+    sizeScale = clamp(S / 420, 0.8, 1.7);
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+      clearCanvas();
+      canvasCleared = true;
+    }
+    scale = bw / nw;
+  }
+  function updateHome(dt, snap) {
+    var visible = (!uiIdle && !sheetOpen) ? 1 : 0;
+    if (snap) uiEase = visible;
+    else uiEase += (visible - uiEase) * (1 - Math.exp(-dt * 2));
+    var portrait = H > W;
+    homeX = W * 0.5;
+    homeY = H * (portrait ? lerp(0.5, 0.42, uiEase) : lerp(0.5, 0.44, uiEase));
+  }
+
+  /* =====================================================================
+     Audio: demo signal
+     ===================================================================== */
+  function demoSignal(dt) {
+    demoT += dt;
+    var beats = demoT * 116 / 60;
+    var beat = Math.floor(beats), ph = beats - beat;
+    var inBar = beat & 3;
+    var section = 0.55 + 0.45 * Math.sin(demoT * TAU / 32);
+    var drop = (Math.floor(beat / 32) & 1) ? 1 : 0.8;
+    var kick = Math.exp(-ph * 6.5) * (inBar === 0 ? 1 : 0.8);
+    var snare = (inBar === 1 || inBar === 3) ? Math.exp(-ph * 5.5) : 0;
+    var eighth = (beats * 2) % 1, sixteenth = (beats * 4) % 1;
+    var hat = Math.exp(-eighth * 13);
+    var tick = Math.exp(-sixteenth * 24);
+    rawB = (0.1 + 0.9 * kick) * (0.7 + 0.3 * section) * drop;
+    rawM = 0.2 + 0.16 * (0.5 + 0.5 * Math.sin(demoT * 0.8)) + 0.14 * (0.5 + 0.5 * Math.sin(demoT * 2.1 + 1.3)) + 0.42 * snare;
+    rawT = (0.08 + 0.42 * hat + 0.22 * tick) * (0.5 + 0.5 * section) + 0.08 * Math.random();
+    if (beat !== demoBeat) {
+      var first = demoBeat < 0;
+      demoBeat = beat;
+      // Demo beats follow the bass gain, as microphone beats do (they are
+      // detected from the bass band); gains above 100% don't strengthen them.
+      if (!first) triggerBeat((inBar === 0 ? 1 : 0.7) * Math.min(1, live.bassGain));
+    }
+  }
+
+  /* =====================================================================
+     Audio: microphone analysis
+     ===================================================================== */
+  function analyserSmoothing() { return clamp(0.35 + settings.smoothing * 0.55, 0, 0.92); }
+  function computeBins(sampleRate, fftSize, binCount) {
+    var hz = sampleRate / fftSize;
+    function idx(f) { return clamp(Math.round(f / hz), 1, binCount - 1); }
+    bins[0] = idx(20);
+    bins[1] = Math.max(bins[0], idx(250) - 1);
+    bins[2] = idx(250);
+    bins[3] = Math.max(bins[2], idx(2000) - 1);
+    bins[4] = idx(2000);
+    bins[5] = Math.max(bins[4], idx(8000));
+  }
+  function bandAvg(a, b) {
+    var s = 0;
+    for (var i = a; i <= b; i++) s += freq[i];
+    return s / ((b - a + 1) * 255);
+  }
+  // Adaptive noise floor plus slow peak normalization per band.
+  function normBand(k, raw, dt) {
+    if (raw < nFloor[k]) nFloor[k] += (raw - nFloor[k]) * (1 - Math.exp(-dt * 3));
+    else nFloor[k] += (raw - nFloor[k]) * (1 - Math.exp(-dt * 0.02));
+    if (nFloor[k] > 0.6) nFloor[k] = 0.6;
+    var v = Math.max(0, raw - nFloor[k] - 0.012);
+    nPeak[k] = Math.max(v, nPeak[k] * Math.exp(-dt * 0.3), 0.1);
+    return v / nPeak[k];
+  }
+  function updateAudio(dt) {
+    var b, m, t;
+    var sens = live.sensitivity, gate = live.noiseGate;
+    if (inputMode === 'mic' && analyser && freq) {
+      analyser.getByteFrequencyData(freq);
+      var rb = bandAvg(bins[0], bins[1]), rm = bandAvg(bins[2], bins[3]), rt = bandAvg(bins[4], bins[5]);
+      if (micFresh) {
+        nFloor[0] = rb * 0.85; nFloor[1] = rm * 0.85; nFloor[2] = rt * 0.85;
+        micFresh = false;
+      }
+      b = PulsarAudio.shape(normBand(0, rb, dt), gate, sens, live.bassGain);
+      m = PulsarAudio.shape(normBand(1, rm, dt), gate, sens, live.midGain);
+      t = PulsarAudio.shape(normBand(2, rt, dt), gate, sens, live.trebleGain);
+      bassAvg += (b - bassAvg) * (1 - Math.exp(-dt * 2));
+      beatCool -= dt;
+      if (beatCool <= 0 && b > 0.38 && b > bassAvg * 1.3 + 0.08) {
+        triggerBeat(clamp(b, 0.45, 1));
+        beatCool = 0.26;
+      }
+    } else {
+      demoSignal(dt);
+      b = PulsarAudio.shape(rawB, gate, sens, live.bassGain);
+      m = PulsarAudio.shape(rawM, gate, sens, live.midGain);
+      t = PulsarAudio.shape(rawT, gate, sens, live.trebleGain);
+    }
+    var e = live.energy * settings.intensity;
+    b *= e; m *= e; t *= e;
+    var att = 1 - Math.exp(-dt / (0.018 + live.smoothing * 0.05));
+    var rel = 1 - Math.exp(-dt / (0.07 + live.smoothing * 0.6));
+    audio.bass += (b - audio.bass) * (b > audio.bass ? att : rel);
+    audio.mid += (m - audio.mid) * (m > audio.mid ? att : rel);
+    audio.treble += (t - audio.treble) * (t > audio.treble ? att : rel);
+    audio.level = audio.bass * 0.45 + audio.mid * 0.35 + audio.treble * 0.2;
+    audio.pulse *= Math.exp(-dt * 3.6);
+  }
+  function triggerBeat(s) {
+    var p = s * clamp(live.energy * settings.intensity, 0, 1.5);
+    if (p < 0.05) return;
+    audio.pulse = Math.max(audio.pulse, Math.min(1.2, p * motion.burst));   // the beat's brightness jump
+    beatCount++;
+    if (frozen) return;                         // a frozen field ignores beats
+    if (settings.haptics === 'beat') {
+      var nowB = performance.now();
+      if (nowB - lastBeatHaptic > 200) { lastBeatHaptic = nowB; haptic(s >= 0.95 ? 'downbeat' : 'beat'); }
+    }
+    if (modeObj.onBeat && motion.beatBursts) modeObj.onBeat(p, motion.burst);
+  }
+
+  function micPrecheck() {
+    if (window.isSecureContext === false) return 'The microphone needs a secure HTTPS page. Demo mode stays active.';
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      return 'This browser or embedded view doesn’t offer microphone access. Demo mode stays active.';
+    }
+    if (!(window.AudioContext || window.webkitAudioContext)) return 'Web Audio isn’t supported in this browser. Demo mode stays active.';
+    try {
+      var pp = document.permissionsPolicy || document.featurePolicy;
+      if (pp && typeof pp.allowsFeature === 'function' && !pp.allowsFeature('microphone')) {
+        return 'This embedded view blocks the microphone. Open PULSAR LIVE as its own HTTPS page to use the mic. Demo mode stays active.';
+      }
+    } catch (e) { /* policy API unavailable */ }
+    return '';
+  }
+  function describeMicError(err) {
+    var n = err && err.name;
+    if (n === 'NotAllowedError' || n === 'PermissionDeniedError') {
+      return 'Microphone access was declined, or this embedded view doesn’t allow it. Demo mode stays active. To use the mic, allow it in browser settings or open the page on its own over HTTPS.';
+    }
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'No microphone was found. Demo mode stays active.';
+    if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') {
+      return 'The microphone is busy or unavailable, possibly in use by another app. Demo mode stays active.';
+    }
+    if (n === 'SecurityError') return 'This page’s security settings block the microphone. Demo mode stays active.';
+    return 'The microphone couldn’t start here. Demo mode stays active.';
+  }
+  function stopTracks(stream) {
+    if (!stream) return;
+    try { stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} }); } catch (e) {}
+  }
+  function closeCtx(ac) {
+    if (!ac) return;
+    try { var p = ac.close(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  }
+  function onMicEnded() {
+    if (inputMode !== 'mic') return;
+    stopMic();
+    showToast('The microphone disconnected or another app took it. Demo mode is active.', 'error', 6000);
+  }
+
+  function startMic() {
+    var why = micPrecheck();
+    if (why) { haptic('error'); showToast(why, 'error', 8000); return; }
+    var token = ++micReq;
+    inputMode = 'requesting';
+    updateInputUI();
+    var ac = null;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      ac = new AC();
+    } catch (e) { ac = null; }
+    if (!ac) {
+      inputMode = 'demo';
+      updateInputUI();
+      showToast('Web Audio couldn’t start in this browser. Demo mode stays active.', 'error', 6000);
+      return;
+    }
+    // Created inside the tap, so iOS treats this context as user-initiated.
+    try { var rp = ac.resume(); if (rp && rp.catch) rp.catch(function () {}); } catch (e) {}
+
+    var constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false };
+    navigator.mediaDevices.getUserMedia(constraints)
+      .catch(function (err) {
+        if (err && (err.name === 'OverconstrainedError' || err.name === 'TypeError')) {
+          return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        }
+        throw err;
+      })
+      .then(function (stream) {
+        if (token !== micReq || inputMode !== 'requesting') { stopTracks(stream); closeCtx(ac); return; }
+        try {
+          var src = ac.createMediaStreamSource(stream);
+          var an = ac.createAnalyser();
+          an.fftSize = 2048;
+          an.minDecibels = -90;
+          an.maxDecibels = -20;
+          an.smoothingTimeConstant = analyserSmoothing();
+          var sink = ac.createGain();
+          sink.gain.value = 0;              // silent sink keeps the graph pulling in Safari; nothing is played back
+          src.connect(an);
+          an.connect(sink);
+          sink.connect(ac.destination);
+          micCtx = ac; micStream = stream; micSource = src; analyser = an; micSink = sink;
+          freq = new Uint8Array(an.frequencyBinCount);
+          computeBins(ac.sampleRate, an.fftSize, an.frequencyBinCount);
+          nPeak[0] = nPeak[1] = nPeak[2] = 0.15;
+          micFresh = true;
+          bassAvg = 0;
+          stream.getAudioTracks().forEach(function (t) { t.addEventListener('ended', onMicEnded); });
+          ac.onstatechange = updateInputUI;
+          inputMode = 'mic';
+          updateInputUI();
+          if (ac.state === 'running') {
+            haptic('confirm'); showToast('Microphone live. Sound is analyzed on this device and never recorded.', 'ok', 3800);
+          } else {
+            showToast('The microphone is connected, but the browser paused audio. Tap the screen once to resume analysis.', 'info', 6500);
+          }
+        } catch (err) {
+          stopTracks(stream);
+          closeCtx(ac);
+          micCtx = micStream = micSource = analyser = micSink = null;
+          inputMode = 'demo';
+          updateInputUI();
+          showToast('The microphone opened, but audio analysis couldn’t start here. Demo mode stays active.', 'error', 7000);
+        }
+      })
+      .catch(function (err) {
+        closeCtx(ac);
+        if (token !== micReq) return;
+        inputMode = 'demo';
+        updateInputUI();
+        haptic('error'); showToast(describeMicError(err), 'error', 9000);
+      });
+  }
+
+  function stopMic() {
+    micReq++;                                   // cancels any pending request
+    if (micStream) {
+      try {
+        micStream.getTracks().forEach(function (t) {
+          try { t.removeEventListener('ended', onMicEnded); } catch (e) {}
+          try { t.stop(); } catch (e) {}
+        });
+      } catch (e) {}
+    }
+    try { if (micSource) micSource.disconnect(); } catch (e) {}
+    try { if (analyser) analyser.disconnect(); } catch (e) {}
+    try { if (micSink) micSink.disconnect(); } catch (e) {}
+    if (micCtx) { micCtx.onstatechange = null; closeCtx(micCtx); }
+    micCtx = micStream = micSource = analyser = micSink = null;
+    freq = null;
+    inputMode = 'demo';
+    updateInputUI();
+  }
+  function resumeAudioOnGesture() {
+    if (micCtx && micCtx.state !== 'running' && micCtx.state !== 'closed') {
+      try {
+        var p = micCtx.resume();
+        if (p && p.then) p.then(updateInputUI, function () {});
+      } catch (e) {}
+    }
+  }
+
+  /* =====================================================================
+     Rendering
+     ===================================================================== */
+  function render(dt) {
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    // Trails: frame-rate independent fade toward black.
+    var tr = clamp(live.trail + modeObj.trailBoost, 0, 0.97);
+    var a60 = 0.04 + 0.6 * (1 - tr) * (1 - tr);
+    var a = 1 - Math.pow(1 - a60, dt * 60);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = clamp(a, 0.02, 1);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    // Clears the faint 8-bit residue that low-alpha fades leave behind.
+    if (frameCount % 3 === 0) {
+      ctx.globalCompositeOperation = 'difference';
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#010101';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.globalCompositeOperation = 'lighter';
+    if (modeObj.drawBack) modeObj.drawBack();
+
+    var glow = PulsarPerf.glow(prof, live.glow);
+    var glowR = (2.0 + 2.6 * glow) * sizeScale;
+    var aMul = 0.6 + 0.3 * glow;
+    var src = atlasSrc;
+    for (var i = 0; i < N; i++) {
+      var al = da[i] * aMul;
+      if (al < 0.012) continue;
+      var r = ds[i] * glowR;
+      var x = px[i], y = py[i];
+      if (x < -r || y < -r || x > W + r || y > H + r) continue;
+      ctx.globalAlpha = al > 1 ? 1 : al;
+      ctx.drawImage(src, dc[i] * CELL, 0, SPR, SPR, x - r, y - r, r + r, r + r);
+      var s = spark[i];
+      if (s > 0.04) {
+        var rs = r * 1.7;
+        ctx.globalAlpha = s * 0.9;
+        ctx.drawImage(src, SPARK_X, 0, SPR, SPR, x - rs, y - rs, rs + rs, rs + rs);
+      }
+    }
+
+    for (var j = 0; j < awN; j++) {
+      var k = aw[j];
+      var l = swl[k];
+      ctx.globalAlpha = clamp(l * l * 0.6 * Math.min(1, sws[k] + 0.2), 0, 1);
+      ctx.lineWidth = 0.8 + 3.2 * l;
+      ctx.strokeStyle = palCSS[swc[k]];
+      ctx.beginPath();
+      ctx.arc(swx[k], swy[k], swr[k], 0, TAU);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function stepPalette(dt) {
+    if (palT >= 1) return;
+    palT = Math.min(1, palT + dt / palDur);
+    var e = palT * palT * (3 - 2 * palT);
+    for (var k = 0; k < 3; k++) {
+      for (var j = 0; j < 3; j++) palNow[k][j] = palFrom[k][j] + (palTo[k][j] - palFrom[k][j]) * e;
+    }
+    buildSprites(palNow);
+    if (palT >= 1) promoteAtlas();
+    if (palT >= 1 || (frameCount & 3) === 0) setAccentVars(palNow);
+  }
+
+  /* =====================================================================
+     Pointer snapshot
+     ===================================================================== */
+  function snapshotPointers(dt, now) {
+    fpN = 0;
+    touchK = live.touchStrength;
+    var decay = Math.exp(-dt * 7);
+    for (var i = 0; i < pointerList.length; i++) {
+      var p = pointerList[i];
+      if (!p.engaged && now - p.downT > 140) p.engaged = true;
+      p.vx *= decay;
+      p.vy *= decay;
+      if (!p.engaged || fpN >= FPMAX) continue;
+      fpx[fpN] = p.x; fpy[fpN] = p.y;
+      fpvx[fpN] = p.vx; fpvy[fpN] = p.vy;
+      fpId[fpN] = p.id;
+      fpN++;
+    }
+  }
+
+  /* =====================================================================
+     Frame timing and automatic quality
+     ===================================================================== */
+  function measureFrame(iv, ts) {
+    if (!winStart) { winStart = ts; winFrames = 0; ivN = 0; return; }
+    if (iv > 0 && iv < 250 && ivN < 256) ivBuf[ivN++] = iv;
+    winFrames++;
+    var el = ts - winStart;
+    if (el < 1000) return;
+    fpsValue = winFrames * 1000 / el;
+    if (ivN >= 8) {
+      ivSort.set(ivBuf.subarray(0, ivN));
+      var arr = ivSort.subarray(0, ivN);
+      arr.sort();
+      var p10 = arr[(ivN * 0.1) | 0], med = arr[(ivN * 0.5) | 0];
+      bestIv = Math.min(p10, bestIv * 1.03);
+      qualityTick(fpsValue, med);
+    }
+    fpsEl.textContent = Math.round(fpsValue) + ' fps' + (qLevel > prof.minLevel ? ', auto-reduced' : '');
+    updatePerfLine();
+    winStart = ts; winFrames = 0; ivN = 0;
+  }
+  function qualityTick(fps, med) {
+    if (!settings.autoQuality) { qBad = 0; qGood = 0; return; }
+    var capped = effCap === 30;
+    var struggling = med > bestIv * 1.3 && fps < (capped ? 26 : 50);
+    var severe = fps < (capped ? 20 : 26);
+    if (struggling || severe) { qBad++; qGood = 0; }
+    else { qGood++; if (qBad > 0) qBad--; }
+    var now = performance.now();
+    if (qBad >= 2 && qLevel < prof.maxLevel) {
+      setQuality(qLevel + 1);
+      qBad = 0; qGood = 0;
+      qUpBlockedUntil = now + qBackoff;
+      qBackoff = Math.min(120000, qBackoff * 1.6);
+    } else if (qGood >= 10 && qLevel > prof.minLevel && med <= bestIv * 1.12 && now > qUpBlockedUntil) {
+      setQuality(qLevel - 1);
+      qGood = 0;
+    }
+  }
+  // quiet: the change came from the user (a profile or automatic quality
+  // switch), so no toast.
+  function setQuality(l, quiet) {
+    var down = l > qLevel;
+    qLevel = PulsarPerf.clampLevel(prof, clamp(l, 0, QUALITY.length - 1));
+    needsResize = true;
+    applyDensity();
+    document.body.classList.toggle('lowfx', qLevel >= 3 || prof.lowfx);
+    if (down && !quiet && !qualityToastShown) {
+      qualityToastShown = true;
+      showToast('Automatic quality lowered the rendering load to keep motion smooth.', 'info', 3400);
+    }
+  }
+
+  /* =====================================================================
+     Main loop
+     ===================================================================== */
+  function frame(ts) {
+    rafId = requestAnimationFrame(frame);
+    if (effCap === 30 && lastTs && ts - lastTs < 1000 / 30 - 4) return;
+    if (!lastTs) lastTs = ts - 16.7;
+    var rawDt = ts - lastTs;
+    lastTs = ts;
+    var dt = clamp(rawDt / 1000, 0.001, 0.05);
+    frameCount++;
+    if (frozen) { frozenFrame(dt); return; }
+    measureFrame(rawDt, ts);
+    simT += dt;
+    try {
+      if (needsResize) resize();
+      if (trans.active()) { trans.step(dt); applyDensity(); }
+      speedNow = live.speed < motion.speed ? live.speed : motion.speed;
+      stepPalette(dt);
+      updateHome(dt, false);
+      updateAudio(dt);
+      snapshotPointers(dt, performance.now());
+      if (fpN > prevFpN) haptic(fpN >= 2 ? 'engage' : 'detent');
+      prevFpN = fpN;
+      updateShockwaves(dt);
+      modeObj.update(dt);
+      render(dt);
+      canvasCleared = false;
+      if ((frameCount & 3) === 0) updateMeters();
+    } catch (err) {
+      errorCount++;
+      if (window.console && console.error) console.error(err);
+      if (errorCount >= 3 && modeObj !== Vortex) {
+        var failed = MODE_NAMES[settings.mode];
+        errorCount = 0;
+        setMode('vortex');
+        sceneEdited();                          // the scene's mode is no longer on screen
+        showToast(failed + ' mode hit an error, so PULSAR LIVE switched to Vortex.', 'error', 5000);
+      }
+    }
+  }
+
+  // While frozen the field holds still: no simulation, transitions, palette
+  // fades or quality changes, and beats and taps don't reach it. Sound is still
+  // analyzed so the meters stay honest about the microphone. If the canvas was
+  // cleared (a resize, or a return from the background), the held frame is
+  // drawn again once, without trails.
+  function frozenFrame(dt) {
+    try {
+      if (needsResize) resize();
+      updateAudio(dt);
+      if (canvasCleared) { canvasCleared = false; render(1); }
+      if ((frameCount & 3) === 0) updateMeters();
+    } catch (err) {
+      if (window.console && console.error) console.error(err);
+    }
+  }
+
+  /* =====================================================================
+     UI
+     ===================================================================== */
+  var pill = $('inputPill'), inputLabel = $('inputLabel'), fpsEl = $('fps'), modeLabel = $('modeLabel');
+  var mB = $('mB'), mM = $('mM'), mT = $('mT');
+  var hint = $('hint'), toastEl = $('toast');
+  var inputBtn = $('inputBtn'), inputBtnLabel = $('inputBtnLabel');
+  var settingsBtn = $('settingsBtn'), immersiveBtn = $('immersiveBtn');
+  var sheet = $('sheet'), scrim = $('scrim'), closeBtn = $('closeSheet');
+  var autoQ = $('autoQ'), releaseSw = $('releasePulse'), perfLine = $('perfLine'), storageNote = $('storageNote'), resetBtn = $('resetBtn');
+  var dockInner = $('dockInner');
+  var pulseBtn = $('pulseBtn'), freezeBtn = $('freezeBtn'), liveScene = $('liveScene');
+  var wordmarkEl = document.querySelector('.wordmark');
+  var modeBtns = Array.prototype.slice.call(document.querySelectorAll('.mode'));
+  var capBtns = Array.prototype.slice.call(document.querySelectorAll('[data-cap]'));
+  var hapticBtns = Array.prototype.slice.call(document.querySelectorAll('[data-haptics]'));
+  var profileBtns = Array.prototype.slice.call(document.querySelectorAll('[data-profile]'));
+  var profileNote = $('profileNote');
+  var motionBtns = Array.prototype.slice.call(document.querySelectorAll('[data-motion]'));
+  var motionNote = $('motionNote');
+  var PROFILE_NOTES = {
+    visual: 'Full resolution and effects. Automatic quality may lower resolution only slightly, so motion can stutter on slower devices.',
+    balanced: 'Full resolution and effects, and automatic quality may use every step. This is how PULSAR LIVE behaved before profiles.',
+    battery: 'Lower resolution, at most 700 particles, 30 fps, smaller glows, fewer sparks and no blur behind the controls. Battery savings haven’t been measured.'
+  };
+  var rangeEls = Array.prototype.slice.call(document.querySelectorAll('input[type="range"][data-key]'));
+  var swatchBtns = [];
+
+  var toastTimer = 0;
+  function showToast(msg, kind, ms) {
+    toastEl.textContent = msg;
+    toastEl.setAttribute('data-kind', kind || 'info');
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 3500);
+  }
+  function hideHint() { hint.classList.add('gone'); }
+
+  var uiIdle = false, idleTimer = 0, sheetOpen = false;
+  // The scene the field shows, while its settings are untouched; -1 for none.
+  var currentScene = -1, currentSceneName = '';
+  function wake() {
+    if (uiIdle) { uiIdle = false; document.body.classList.remove('idle'); }
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(goIdle, 5000);
+  }
+  // A focused field means a picker or keyboard may be open. On iPhone the scene
+  // list's picker sits where the keyboard goes, and hiding the dock under it
+  // closes or jumps the picker.
+  function fieldFocused() {
+    var a = document.activeElement, tag = a && a.tagName;
+    return tag === 'SELECT' || tag === 'TEXTAREA' || (tag === 'INPUT' && a.type !== 'range');
+  }
+  function goIdle() {
+    if (sheetOpen || inputMode === 'requesting' || fieldFocused()) { clearTimeout(idleTimer); idleTimer = setTimeout(goIdle, 3000); return; }
+    uiIdle = true;
+    document.body.classList.add('idle');
+  }
+
+  function openSheet() {
+    gesture.interrupt();
+    sheetOpen = true;
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    if ('inert' in sheet) sheet.inert = false;
+    scrim.classList.add('show');
+    document.body.classList.add('sheet-open');
+    updatePerfLine();
+    wake();
+  }
+  function closeSheet() {
+    sheetOpen = false;
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+    if ('inert' in sheet) sheet.inert = true;
+    scrim.classList.remove('show');
+    document.body.classList.remove('sheet-open');
+    wake();
+  }
+
+  function updateModeUI() {
+    modeBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === settings.mode ? 'true' : 'false'); });
+    modeLabel.textContent = MODE_NAMES[settings.mode] + (currentSceneName ? ' · ' + currentSceneName : '');
+  }
+  function updateInputUI() {
+    var state = inputMode, label;
+    if (inputMode === 'mic') {
+      if (micCtx && micCtx.state !== 'running') { state = 'paused'; label = 'Mic paused'; }
+      else label = 'Mic live';
+    } else if (inputMode === 'requesting') label = 'Asking for mic…';
+    else label = 'Demo signal';
+    pill.setAttribute('data-state', state);
+    inputLabel.textContent = label;
+    inputBtnLabel.textContent = inputMode === 'mic' ? 'Stop mic' : inputMode === 'requesting' ? 'Cancel' : 'Start mic';
+    inputBtn.setAttribute('aria-pressed', inputMode === 'mic' ? 'true' : 'false');
+    inputBtn.classList.toggle('live', inputMode === 'mic');
+  }
+  // Writes only values that changed. The glow variable lives on the wordmark,
+  // not :root, so each update restyles one element instead of the document.
+  var lastMB = '', lastMM = '', lastMT = '', lastGlow = '';
+  function updateMeters() {
+    var b = clamp(audio.bass, 0.08, 1).toFixed(2);
+    var m = clamp(audio.mid, 0.08, 1).toFixed(2);
+    var t = clamp(audio.treble, 0.08, 1).toFixed(2);
+    if (b !== lastMB) { lastMB = b; mB.style.transform = 'scaleY(' + b + ')'; }
+    if (m !== lastMM) { lastMM = m; mM.style.transform = 'scaleY(' + m + ')'; }
+    if (t !== lastMT) { lastMT = t; mT.style.transform = 'scaleY(' + t + ')'; }
+    if (uiIdle) return;                         // the wordmark is hidden while idle
+    var g = clamp(audio.level * 0.8 + audio.pulse * 0.5, 0, 1).toFixed(2);
+    if (g !== lastGlow) { lastGlow = g; wordmarkEl.style.setProperty('--wm-glow', g); }
+  }
+  function updatePerfLine() {
+    if (!sheetOpen) return;
+    var fpsText = fpsValue > 0 ? Math.round(fpsValue) + ' fps measured' : 'Measuring frame rate';
+    perfLine.textContent = prof.name + ': ' + fpsText + ', render scale ' + scale.toFixed(2) + '×, ' + N + ' particles' +
+      (N !== Math.round(settings.density) ? ' (density setting ' + Math.round(settings.density) + ')' : '') +
+      (effCap < settings.fpsCap ? ', limited to ' + effCap + ' fps' : '');
+  }
+  function updateStorageNote() {
+    storageNote.textContent = storageAvailable
+      ? 'Your mode, palette, and tuning are saved in this browser. No audio is ever saved.'
+      : 'This browser isn’t allowing saved preferences, so settings reset when the page reloads.';
+  }
+
+  function fmtValue(key, v) {
+    if (key === 'density' || key === 'symmetry') return String(Math.round(v));
+    if (key === 'sensitivity' || key === 'speed') return v.toFixed(2) + '×';
+    if (key === 'bursts' && v <= 0) return 'Off';
+    return Math.round(v * 100) + '%';
+  }
+  function syncRange(el) {
+    var key = el.getAttribute('data-key');
+    var div = +el.getAttribute('data-div') || 1;
+    var v = settings[key];
+    el.value = String(v * div);
+    var min = +el.min, max = +el.max;
+    el.style.setProperty('--fill', clamp((v * div - min) / (max - min) * 100, 0, 100).toFixed(1) + '%');
+    el._notch = notchOf(el);
+    var out = document.querySelector('output[data-for="' + el.id + '"]');
+    if (out) out.textContent = fmtValue(key, v);
+  }
+  function syncSwitches() {
+    autoQ.setAttribute('aria-checked', settings.autoQuality ? 'true' : 'false');
+    releaseSw.setAttribute('aria-checked', settings.releasePulse ? 'true' : 'false');
+    capBtns.forEach(function (b) { b.setAttribute('aria-pressed', +b.getAttribute('data-cap') === settings.fpsCap ? 'true' : 'false'); });
+    hapticBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-haptics') === settings.haptics ? 'true' : 'false'); });
+    profileBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-profile') === settings.profile ? 'true' : 'false'); });
+    profileNote.textContent = PROFILE_NOTES[settings.profile] + ' Your density, glow and frame rate settings are kept and return when you switch back.';
+    motionBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-motion') === settings.motion ? 'true' : 'false'); });
+    var sys = systemReducedMotion() ? 'on' : 'off';
+    motionNote.textContent = settings.motion === 'system'
+      ? 'Following your device’s reduce motion setting, which is ' + sys + ', so motion is ' + (motion.reduced ? 'reduced.' : 'full.')
+      : 'Motion is ' + (motion.reduced ? 'reduced' : 'full') + ' whatever your device’s setting (currently ' + sys + '). Choose System to follow it.';
+  }
+  // Recomputes the motion limits. Call it after the motion preference, the
+  // burst control or the system setting changes.
+  function applyMotion() {
+    PulsarMotion.resolve(settings.motion, systemReducedMotion(), settings.bursts, motion);
+    sparkK = prof.sparks * motion.sparks;
+    document.body.classList.toggle('reduce-motion', motion.reduced);
+  }
+  function updatePaletteUI() {
+    swatchBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-palette') === settings.palette ? 'true' : 'false'); });
+  }
+  function syncAllControls() {
+    rangeEls.forEach(syncRange);
+    syncSwitches();
+    updatePaletteUI();
+  }
+  function setSetting(key, v) {
+    var r = RANGES[key] || PREF_RANGES[key];
+    if (r) v = clamp(v, r[0], r[1]);
+    if (key === 'symmetry') v = Math.round(v);
+    settings[key] = v;
+    trans.sync();                               // during a transition this retargets the blend
+    if (key === 'bursts') applyMotion();
+    if (key === 'density') applyDensity();
+    if (key === 'smoothing' && analyser) analyser.smoothingTimeConstant = analyserSmoothing();
+    rangeEls.forEach(function (el) { if (el.getAttribute('data-key') === key) syncRange(el); });
+    saveSettings();
+  }
+  function setMode(name) {
+    if (!MODES[name]) return;
+    var prev = modeObj;
+    settings.mode = name;
+    modeObj = MODES[name];
+    if (prev !== modeObj) {
+      trans.cancel();                           // transitions never cross modes
+      applyDensity();
+      if (modeObj.enter) modeObj.enter();
+    }
+    errorCount = 0;
+    updateModeUI();
+    saveSettings();
+  }
+  // dur: fade time in seconds (default 0.8; scene transitions pass their own).
+  function setPalette(name, dur) {
+    if (!PALETTES[name]) return;
+    settings.palette = name;
+    palDur = dur > 0 ? dur : 0.8;
+    palFrom = palNow.map(function (c) { return c.slice(); });
+    palTo = palFromName(name);
+    palT = 0;
+    if (!running) {
+      palT = 1;
+      for (var k = 0; k < 3; k++) for (var j = 0; j < 3; j++) palNow[k][j] = palTo[k][j];
+      buildSprites(palNow);
+      promoteAtlas();
+      setAccentVars(palNow);
+    }
+    updatePaletteUI();
+    saveSettings();
+  }
+  function buildSwatches() {
+    var wrap = $('swatches');
+    Object.keys(PALETTES).forEach(function (key) {
+      var p = PALETTES[key];
+      var b = document.createElement('button');
+      b.className = 'swatch';
+      b.type = 'button';
+      b.setAttribute('data-palette', key);
+      b.setAttribute('aria-pressed', 'false');
+      var bar = document.createElement('i');
+      bar.style.background = 'linear-gradient(90deg,' + p.colors.join(',') + ')';
+      var label = document.createElement('span');
+      label.textContent = p.name;
+      b.appendChild(bar);
+      b.appendChild(label);
+      b.addEventListener('click', function () {
+        haptic('ui');
+        if (key !== settings.palette) { setPalette(key); sceneEdited(); }
+        wake();
+      });
+      wrap.appendChild(b);
+      swatchBtns.push(b);
+    });
+  }
+
+  // Applies tuning values (a scene or the defaults) and syncs every control.
+  // Keys missing from values, such as haptics for scenes, are left alone.
+  // Recomputes the limits from the active profile and the requested settings.
+  // Call it after changing the profile, the frame rate limit or automatic quality.
+  // restart: begin at the profile's best level (choosing a profile, reset);
+  // otherwise automatic quality keeps its current level within the new range.
+  function applyProfile(restart) {
+    prof = PulsarPerf.get(settings.profile);
+    var cap = PulsarPerf.fpsCap(prof, settings.fpsCap);
+    if (cap !== effCap) { effCap = cap; bestIv = 1000; }
+    sparkK = prof.sparks * motion.sparks;
+    qBad = 0; qGood = 0;
+    setQuality(settings.autoQuality && !restart ? qLevel : prof.minLevel, true);
+  }
+  // blend: a transition has begun (trans.begin()), so the palette fades over
+  // the same time as the tuning.
+  function applyTuning(values, blend) {
+    var capChanged = 'fpsCap' in values && values.fpsCap !== settings.fpsCap;
+    for (var k in values) if (k !== 'mode' && k !== 'palette' && !MOTION_PREFS[k]) settings[k] = values[k];
+    trans.sync();
+    applyProfile();
+    if (capChanged) bestIv = 1000;
+    if (values.mode) setMode(values.mode);
+    if (values.palette && values.palette !== settings.palette) setPalette(values.palette, blend ? PulsarTransition.DURATION : 0);
+    applyDensity();
+    if (analyser) analyser.smoothingTimeConstant = analyserSmoothing();
+    syncAllControls();
+    updatePerfLine();
+    saveSettings();
+  }
+
+  /* =====================================================================
+     Saved scenes (UI). Everything here runs from user events only, never
+     from the animation loop.
+     ===================================================================== */
+  var sceneModel = PulsarScenes.createModel({
+    ranges: RANGES,
+    integers: ['density', 'symmetry'],
+    enums: { mode: Object.keys(MODE_NAMES), palette: Object.keys(PALETTES), fpsCap: [30, 60] },
+    booleans: ['autoQuality', 'releasePulse'],
+    added: {
+      2: { touchStrength: 1, releasePulse: false },
+      3: { bassGain: 1, midGain: 1, trebleGain: 1, noiseGate: 0 }
+    }
+  });
+  var library = PulsarScenes.createLibrary(sceneModel, PulsarScenes.createStore(function () { return window.localStorage; }));
+  var sceneForm = $('sceneForm'), sceneName = $('sceneName'), sceneMsgEl = $('sceneMsg'), sceneList = $('sceneList');
+  var sceneImport = $('sceneImport'), sceneExport = $('sceneExport'), sceneFile = $('sceneFile');
+  var sceneCount = $('sceneCount'), sceneStore = $('sceneStore');
+  var sceneEdit = null;                       // { i, kind: 'rename' | 'delete' } for the row being edited
+
+  function sceneMsg(text, kind) {
+    sceneMsgEl.textContent = text;
+    sceneMsgEl.setAttribute('data-kind', kind || 'info');
+  }
+  // Explains where scenes live. Returns a short suffix for messages after a change.
+  function updateSceneStore() {
+    var p = library.persistence();
+    sceneStore.textContent =
+      p === 'saved' ? 'Scenes are saved in this browser.'
+      : p === 'unsaved' ? 'This browser’s storage is full, so recent scene changes last only for this session. Export your scenes to keep them.'
+      : p === 'protected' ? 'Saved scenes in this browser couldn’t be read, so they were left untouched. New scenes last only for this session; export them to keep them.'
+      : 'This browser isn’t allowing saved data, so scenes last only for this session. Export them to keep them.';
+  }
+  function persistNote(r) {
+    if (r.writeFailed && r.reason === 'quota') return ' Storage is full, so this change lasts only for this session.';
+    if (r.writeFailed) return ' This browser blocked saving, so this change lasts only for this session.';
+    if (r.persist !== 'saved') return ' It lasts only for this session.';
+    return '';
+  }
+  function sceneButton(label, aria, onClick, cls) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip-btn' + (cls ? ' ' + cls : '');
+    b.textContent = label;
+    if (aria) b.setAttribute('aria-label', aria);
+    b.addEventListener('click', function () { haptic('ui'); onClick(); wake(); });
+    return b;
+  }
+  function renderScenes(focusSel) {
+    var items = library.list();
+    sceneList.textContent = '';
+    items.forEach(function (sc, i) {
+      var li = document.createElement('li');
+      li.className = 'scene-row';
+      var acts = document.createElement('div');
+      acts.className = 'scene-acts';
+      if (sceneEdit && sceneEdit.i === i && sceneEdit.kind === 'rename') {
+        li.classList.add('editing');
+        var input = document.createElement('input');
+        input.className = 'text-input';
+        input.type = 'text';
+        input.maxLength = library.MAX_NAME;
+        input.value = sc.name;
+        input.spellcheck = false;
+        input.setAttribute('aria-label', 'New name for ' + sc.name);
+        input.setAttribute('enterkeyhint', 'done');
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); doRename(i, input.value); }
+          else if (e.key === 'Escape') { e.preventDefault(); sceneEdit = null; renderScenes(); }
+        });
+        li.appendChild(input);
+        acts.appendChild(sceneButton('Cancel', '', function () { sceneEdit = null; sceneMsg(''); renderScenes(); }));
+        acts.appendChild(sceneButton('Save name', '', function () { doRename(i, input.value); }));
+      } else if (sceneEdit && sceneEdit.i === i && sceneEdit.kind === 'delete') {
+        li.classList.add('editing');
+        var q = document.createElement('span');
+        q.className = 'scene-name';
+        q.textContent = 'Delete “' + sc.name + '”? This can’t be undone.';
+        li.appendChild(q);
+        acts.appendChild(sceneButton('Cancel', '', function () { sceneEdit = null; renderScenes(); }));
+        acts.appendChild(sceneButton('Delete', 'Confirm deleting ' + sc.name, function () { doDelete(i); }, 'danger'));
+      } else {
+        var name = document.createElement('span');
+        name.className = 'scene-name';
+        name.textContent = sc.name;
+        li.appendChild(name);
+        acts.appendChild(sceneButton('Load', 'Load ' + sc.name, function () { doLoad(i); }));
+        acts.appendChild(sceneButton('Rename', 'Rename ' + sc.name, function () { sceneEdit = { i: i, kind: 'rename' }; sceneMsg(''); renderScenes('input'); }));
+        acts.appendChild(sceneButton('Delete', 'Delete ' + sc.name, function () { sceneEdit = { i: i, kind: 'delete' }; sceneMsg(''); renderScenes('.chip-btn'); }));
+      }
+      li.appendChild(acts);
+      sceneList.appendChild(li);
+      if (focusSel && sceneEdit && sceneEdit.i === i) {
+        var f = li.querySelector(focusSel);
+        if (f) { try { f.focus({ preventScroll: false }); if (f.select) f.select(); } catch (e) {} }
+      }
+    });
+    var n = library.count();
+    sceneCount.textContent = n + ' of ' + library.MAX_SCENES;
+    sceneExport.disabled = n === 0;
+    updateSceneStore();
+    renderSceneSelect();
+  }
+  // Loads a saved scene. In the same mode it blends in over
+  // PulsarTransition.DURATION, starting from whatever is showing (so a load
+  // during a transition interrupts it cleanly); in another mode it switches
+  // at once. Only one simulation runs either way. Returns the scene or null.
+  function loadScene(i) {
+    var sc = library.get(i);
+    if (!sc) return null;
+    var blend = sc.settings.mode === settings.mode;
+    if (blend) trans.begin(); else trans.cancel();
+    applyTuning(sc.settings, blend);
+    currentScene = i;
+    syncSceneSelect();
+    return sc;
+  }
+  function doLoad(i) {
+    if (fieldFocused() && document.activeElement.blur) document.activeElement.blur();
+    var sc = loadScene(i);
+    if (!sc) { sceneMsg('That scene no longer exists.', 'error'); renderScenes(); return; }
+    sceneMsg('Loaded “' + sc.name + '”.', 'ok');
+    haptic('confirm');
+  }
+  // A scene setting was changed by hand, so the field no longer shows the scene.
+  function sceneEdited() {
+    if (currentScene < 0) return;
+    currentScene = -1;
+    syncSceneSelect();
+  }
+  function syncSceneSelect() {
+    var sc = currentScene >= 0 ? library.get(currentScene) : null;
+    if (!sc) currentScene = -1;
+    currentSceneName = sc ? sc.name : '';
+    // Writing an unchanged value can reset the iPhone picker wheel mid-choice.
+    var v = sc ? String(currentScene) : '';
+    if (liveScene.value !== v) liveScene.value = v;
+    updateModeUI();
+  }
+  function renderSceneSelect() {
+    var items = library.list();
+    liveScene.textContent = '';
+    var none = document.createElement('option');
+    none.value = '';
+    none.textContent = items.length ? 'Scenes' : 'No scenes';
+    liveScene.appendChild(none);
+    items.forEach(function (sc, i) {
+      var o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = sc.name;
+      liveScene.appendChild(o);
+    });
+    liveScene.disabled = !items.length;
+    syncSceneSelect();
+  }
+  // Steps through saved scenes from the keyboard ([ and ]).
+  function stepScene(dir) {
+    var n = library.count();
+    if (!n) { showToast('No saved scenes yet. Save one in settings, under Scenes.', 'info', 3000); return; }
+    var i = currentScene < 0 ? (dir > 0 ? 0 : n - 1) : (currentScene + dir + n) % n;
+    var sc = loadScene(i);
+    if (sc) showToast('Scene: ' + sc.name, 'info', 1800);
+    haptic('ui');
+    wake();
+  }
+  function doRename(i, value) {
+    var r = library.rename(i, value);
+    if (!r.ok) { sceneMsg(r.error, 'error'); haptic('error'); return; }
+    sceneEdit = null;
+    renderScenes();
+    sceneMsg('Renamed to “' + r.name + '”.' + persistNote(r), r.writeFailed ? 'error' : 'ok');
+  }
+  function doDelete(i) {
+    var r = library.remove(i);
+    if (r.ok && i === currentScene) currentScene = -1;
+    else if (r.ok && i < currentScene) currentScene--;
+    sceneEdit = null;
+    renderScenes();
+    if (!r.ok) { sceneMsg(r.error, 'error'); return; }
+    sceneMsg('Deleted “' + r.name + '”.' + persistNote(r), r.writeFailed ? 'error' : 'ok');
+  }
+  sceneForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    // Captures the live settings object, so changes made a moment ago are
+    // included even before the debounced preference save has run.
+    var r = library.save(sceneName.value, settings);
+    if (!r.ok) { sceneMsg(r.error, 'error'); haptic('error'); return; }
+    sceneName.value = '';
+    // Close the keyboard. Left open, the next tap (say, Load on another scene)
+    // only dismisses it, and the sheet shifts under the finger.
+    sceneName.blur();
+    sceneEdit = null;
+    renderScenes();
+    sceneMsg('Saved “' + r.name + '”.' + persistNote(r), r.writeFailed ? 'error' : 'ok');
+    haptic('confirm');
+    wake();
+  });
+  sceneExport.addEventListener('click', function () {
+    haptic('ui');
+    wake();
+    if (!library.count()) return;
+    try {
+      var url = URL.createObjectURL(new Blob([library.exportText()], { type: 'application/json' }));
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'pulsar-live-scenes.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      sceneMsg('Exported ' + library.count() + ' scene' + (library.count() === 1 ? '' : 's') + ' as pulsar-live-scenes.json.', 'ok');
+    } catch (err) {
+      sceneMsg('This browser couldn’t create the export file.', 'error');
+    }
+  });
+  sceneImport.addEventListener('click', function () { haptic('ui'); wake(); sceneFile.click(); });
+  function readFileText(file) {
+    if (file.text) return file.text();
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result)); };
+      fr.onerror = function () { reject(fr.error); };
+      fr.readAsText(file);
+    });
+  }
+  sceneFile.addEventListener('change', function () {
+    var file = sceneFile.files && sceneFile.files[0];
+    sceneFile.value = '';
+    if (!file) return;
+    if (file.size > library.MAX_IMPORT_BYTES) { sceneMsg('Scene files can be at most 64 KB.', 'error'); haptic('error'); return; }
+    readFileText(file).then(function (text) {
+      var r = library.importText(text);
+      if (!r.ok) { sceneMsg('Nothing was imported. ' + r.error, 'error'); haptic('error'); return; }
+      sceneEdit = null;
+      renderScenes();
+      var renamed = r.renamed.length ? ' ' + r.renamed.length + ' renamed to avoid replacing existing scenes: ' +
+        r.renamed.map(function (x) { return '“' + x.to + '”'; }).join(', ') + '.' : '';
+      var older = r.fromVersion < PulsarScenes.VERSION ? ' The file is from an older version, so settings added since then use their defaults.' : '';
+      sceneMsg('Imported ' + r.added + ' scene' + (r.added === 1 ? '' : 's') + '.' + renamed + older + persistNote(r), r.writeFailed ? 'error' : 'ok');
+      haptic('confirm');
+    }, function () {
+      sceneMsg('The file couldn’t be read.', 'error');
+    });
+  });
+  if (library.loadStatus === 'corrupt') sceneMsg('Saved scenes in this browser couldn’t be read, so they were left untouched. Details: ' + library.loadError, 'error');
+
+  /* =====================================================================
+     PNG snapshots: the canvas only, so no interface overlays. Never audio.
+     ===================================================================== */
+  var snapBtn = $('snapBtn');
+  var capturing = false;                  // one capture at a time
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function snapshotName(d) {
+    return 'pulsar-live-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' +
+      pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds()) + '.png';
+  }
+  function snapshotFailed(why) {
+    haptic('error');
+    showToast(why || 'The snapshot couldn’t be created. Nothing was saved.', 'error', 5000);
+  }
+  function endCapture() {
+    capturing = false;
+    snapBtn.disabled = false;
+    snapBtn.removeAttribute('aria-busy');
+  }
+  function takeSnapshot() {
+    if (capturing) return;
+    if (typeof canvas.toBlob !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      snapshotFailed('This browser can’t save snapshots as PNG files.');
+      return;
+    }
+    capturing = true;
+    snapBtn.disabled = true;
+    snapBtn.setAttribute('aria-busy', 'true');
+    var name = snapshotName(new Date());
+    var settled = false;
+    // Some engines never call back (for example, for a canvas that is too
+    // large); give up after 15 s so the button doesn't stay disabled.
+    var watchdog = setTimeout(function () { if (!settled) { settled = true; endCapture(); snapshotFailed(); } }, 15000);
+    try {
+      canvas.toBlob(function (blob) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        if (!blob) { endCapture(); snapshotFailed(); return; }
+        var url = null;
+        try {
+          url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          haptic('confirm');
+          showToast('Snapshot created as ' + name + '. Check your downloads.', 'ok', 4000);
+        } catch (err) {
+          snapshotFailed();
+        }
+        // Give the browser time to start the download before releasing it.
+        if (url) setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+        endCapture();
+      }, 'image/png');
+    } catch (err) {
+      settled = true;
+      clearTimeout(watchdog);
+      endCapture();
+      snapshotFailed(err && err.name === 'SecurityError' ? 'This browser blocked reading the picture, so no snapshot was saved.' : '');
+    }
+  }
+
+  function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function immersiveFallback() {
+    var ios = /iPhone|iPod/.test(navigator.userAgent);
+    showToast(ios
+      ? 'iPhone browsers don’t offer full screen for pages like this, so the controls tuck away instead. Tap the screen to bring them back, or add the page to your Home Screen for an edge-to-edge view.'
+      : 'Full screen isn’t available here, so the controls tuck away instead. Tap the screen to bring them back.', 'info', 5500);
+    setTimeout(goIdle, 900);
+  }
+  function toggleImmersive() {
+    if (isFullscreen()) {
+      var ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (ex) { try { var xp = ex.call(document); if (xp && xp.catch) xp.catch(function () {}); } catch (e) {} }
+      return;
+    }
+    var el = document.documentElement;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen;
+    var enabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+    if (!req || !enabled) { immersiveFallback(); return; }
+    var p;
+    try { p = req.call(el); } catch (e) { immersiveFallback(); return; }
+    if (p && p.then) p.then(function () { setTimeout(goIdle, 500); }, immersiveFallback);
+    else setTimeout(goIdle, 500);
+  }
+
+  /* =====================================================================
+     Pointer handling (canvas only, so UI touches never reach the field)
+     ===================================================================== */
+  function findPointer(id) {
+    for (var i = 0; i < pointerList.length; i++) if (pointerList[i].id === id) return i;
+    return -1;
+  }
+  function onTap(x, y) {
+    if (frozen) return;                         // taps don't queue up while the field is held
+    if (canVibrate) haptic(modeObj === Plasma ? 'burst' : 'tap');
+    else if (iosSwitchHaptics && hapticsOn('tap')) {
+      var stamp = performance.now();
+      iosTapPending = stamp;
+      // Fallback tick if the browser never delivers a click for this tap.
+      setTimeout(function () { if (iosTapPending === stamp) { iosTapPending = 0; haptic('tap'); } }, 90);
+    }
+    fieldPulse(x, y);
+  }
+  // A tap's effect on the field: a shockwave, sparks nearby, and Plasma's
+  // eruption. Taps and the Pulse button share it.
+  // The burst setting scales all of it, the same as for release pulses and
+  // beats; at 0 nothing happens.
+  function fieldPulse(x, y) {
+    var g = motion.burst;
+    if (!(g > 0)) return;
+    addShockwave(x, y, g);
+    var R = S * 0.14, R2 = R * R;
+    for (var i = 0; i < N; i++) {
+      var dx = px[i] - x, dy = py[i] - y;
+      if (dx * dx + dy * dy < R2) spark[i] = g;
+    }
+    if (modeObj.onTap) modeObj.onTap(x, y, g);
+  }
+  canvas.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    wake();
+    hideHint();
+    resumeAudioOnGesture();
+    if (pointerList.length >= PTRMAX) return;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    var now = performance.now();
+    pointerList.push({
+      id: e.pointerId, x: e.clientX, y: e.clientY, vx: 0, vy: 0,
+      t: e.timeStamp || now, downX: e.clientX, downY: e.clientY, downT: now,
+      engaged: false, moved: false
+    });
+    gesture.down(e.pointerId, e.clientX, e.clientY);
+  }, { passive: false });
+  canvas.addEventListener('pointermove', function (e) {
+    var i = findPointer(e.pointerId);
+    if (i < 0) return;
+    e.preventDefault();
+    var p = pointerList[i];
+    var ts = e.timeStamp || performance.now();
+    var dtE = Math.max(4, ts - p.t) / 1000;
+    var nx = e.clientX, ny = e.clientY;
+    var ivx = clamp((nx - p.x) / dtE, -5000, 5000);
+    var ivy = clamp((ny - p.y) / dtE, -5000, 5000);
+    p.vx += (ivx - p.vx) * 0.5;
+    p.vy += (ivy - p.vy) * 0.5;
+    p.x = nx; p.y = ny; p.t = ts;
+    gesture.move(e.pointerId, nx, ny);
+    if (!p.moved) {
+      var dx = nx - p.downX, dy = ny - p.downY;
+      if (dx * dx + dy * dy > 100) { p.moved = true; p.engaged = true; }
+    }
+  }, { passive: false });
+  function endPointer(e) {
+    var i = findPointer(e.pointerId);
+    if (i < 0) return;
+    var p = pointerList[i];
+    pointerList.splice(i, 1);
+    if (e.type === 'pointerup') {
+      var tap = !p.moved && performance.now() - p.downT < 300;
+      if (tap) onTap(p.x, p.y);
+      // One pulse per completed drag, when the last finger lifts.
+      if (gesture.up(e.pointerId, tap)) {
+        var ps = PulsarTouch.releaseStrength(settings) * motion.burst;
+        if (ps > 0 && !frozen) addShockwave(p.x, p.y, ps);
+      }
+    } else gesture.cancel(e.pointerId);
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('lostpointercapture', endPointer);
+  canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
+    document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
+  });
+
+  /* =====================================================================
+     Control wiring
+     ===================================================================== */
+  // A mode change by the user; it also leaves the current scene.
+  function userMode(name) {
+    var before = settings.mode;
+    setMode(name);
+    if (settings.mode !== before) sceneEdited();
+  }
+  modeBtns.forEach(function (b) {
+    b.addEventListener('click', function () { haptic('ui'); userMode(b.getAttribute('data-mode')); wake(); });
+  });
+  rangeEls.forEach(function (el) {
+    el.addEventListener('input', function () {
+      if (notchOf(el) !== el._notch) haptic('detent');
+      var div = +el.getAttribute('data-div') || 1;
+      var key = el.getAttribute('data-key');
+      setSetting(key, +el.value / div);
+      if (sceneModel.KEYS.indexOf(key) >= 0) sceneEdited();
+      wake();
+    });
+  });
+  pulseBtn.addEventListener('click', function () {
+    if (frozen) return;
+    haptic('tap');
+    fieldPulse(homeX, homeY);
+    wake();
+  });
+  // Freeze is a session state: it isn't saved, and it doesn't touch the
+  // microphone, which the visibility and pagehide handlers still release.
+  function setFrozen(on) {
+    if (frozen === on) return;
+    frozen = on;
+    if (!on) { lastTs = 0; winStart = 0; }     // resume without a time jump or a stale frame-rate window
+    freezeBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    pulseBtn.disabled = on;
+    fpsEl.textContent = on ? 'Frozen' : 'Measuring';
+  }
+  freezeBtn.addEventListener('click', function () { haptic('ui'); setFrozen(!frozen); wake(); });
+  liveScene.addEventListener('change', function () {
+    var i = liveScene.value === '' ? -1 : +liveScene.value;
+    if (i >= 0 && loadScene(i)) haptic('ui');
+    else syncSceneSelect();
+    wake();
+  });
+  inputBtn.addEventListener('click', function () {
+    haptic('ui');
+    wake();
+    if (inputMode === 'mic') {
+      stopMic();
+      showToast('Microphone off. The demo signal is driving the field.', 'info', 3000);
+    } else if (inputMode === 'requesting') {
+      stopMic();
+      showToast('Microphone request canceled. Demo mode is active.', 'info', 3000);
+    } else {
+      startMic();
+    }
+  });
+  settingsBtn.addEventListener('click', function () { haptic('ui'); openSheet(); });
+  snapBtn.addEventListener('click', function () { haptic('ui'); takeSnapshot(); wake(); });
+  closeBtn.addEventListener('click', function () { haptic('ui'); closeSheet(); });
+  scrim.addEventListener('click', closeSheet);
+  immersiveBtn.addEventListener('click', function () { haptic('ui'); toggleImmersive(); });
+  autoQ.addEventListener('click', function () {
+    settings.autoQuality = !settings.autoQuality;
+    haptic('ui');
+    applyProfile();
+    sceneEdited();
+    syncSwitches();
+    saveSettings();
+    wake();
+  });
+  releaseSw.addEventListener('click', function () {
+    settings.releasePulse = !settings.releasePulse;
+    haptic('ui');
+    sceneEdited();
+    syncSwitches();
+    saveSettings();
+    wake();
+  });
+  capBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      settings.fpsCap = +b.getAttribute('data-cap') === 30 ? 30 : 60;
+      haptic('ui');
+      bestIv = 1000;
+      applyProfile();
+      sceneEdited();
+      syncSwitches();
+      saveSettings();
+      wake();
+    });
+  });
+  profileBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var name = b.getAttribute('data-profile');
+      if (!PulsarPerf.PROFILES[name]) return;
+      settings.profile = name;
+      haptic('ui');
+      applyProfile(true);
+      syncSwitches();
+      updatePerfLine();
+      saveSettings();
+      wake();
+    });
+  });
+  motionBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var pref = b.getAttribute('data-motion');
+      if (PulsarMotion.PREFS.indexOf(pref) < 0) return;
+      settings.motion = pref;
+      haptic('ui');
+      applyMotion();
+      syncSwitches();
+      saveSettings();
+      wake();
+    });
+  });
+  // While the preference is System, follow changes to the device setting.
+  if (reduceMotionQuery) {
+    var onSystemMotion = function () { applyMotion(); syncSwitches(); };
+    if (reduceMotionQuery.addEventListener) reduceMotionQuery.addEventListener('change', onSystemMotion);
+    else if (reduceMotionQuery.addListener) reduceMotionQuery.addListener(onSystemMotion);
+  }
+  hapticBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      settings.haptics = b.getAttribute('data-haptics');
+      syncSwitches();
+      saveSettings();
+      if (settings.haptics !== 'off') haptic('confirm');
+      wake();
+    });
+  });
+  resetBtn.addEventListener('click', function () {
+    trans.cancel();
+    applyTuning(DEFAULTS);
+    applyProfile(true);
+    sceneEdited();
+    haptic('confirm');
+    showToast('Tuning reset to defaults. Saved scenes and motion settings were kept.', 'ok', 2600);
+  });
+  // Touching the controls mid-drag ends that drag's chance of a release pulse.
+  dockInner.addEventListener('pointerdown', function () { gesture.interrupt(); wake(); resumeAudioOnGesture(); });
+  sheet.addEventListener('pointerdown', function () { gesture.interrupt(); wake(); resumeAudioOnGesture(); });
+  window.addEventListener('keydown', function (e) {
+    var tag = e.target && e.target.tagName;
+    // Typing in any field (scene names, sliders, the scene list) must not
+    // trigger shortcuts, and browser shortcuts such as Ctrl+P are left alone.
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    var map = { '1': 'vortex', '2': 'fluid', '3': 'geometry', '4': 'plasma' };
+    if (map[e.key]) { userMode(map[e.key]); wake(); }
+    else if (e.key === 'm' || e.key === 'M') inputBtn.click();
+    else if (e.key === 'p' || e.key === 'P') pulseBtn.click();
+    else if (e.key === 'f' || e.key === 'F') freezeBtn.click();
+    else if (e.key === 's' || e.key === 'S') snapBtn.click();
+    else if (e.key === '[') stepScene(-1);
+    else if (e.key === ']') stepScene(1);
+    else if (e.key === 'Escape' && sheetOpen) closeSheet();
+    else wake();
+  });
+
+  /* =====================================================================
+     Lifecycle: resize, orientation, background, unload
+     ===================================================================== */
+  function markResize() { needsResize = true; }
+  window.addEventListener('resize', markResize);
+  window.addEventListener('orientationchange', function () {
+    needsResize = true;
+    setTimeout(markResize, 350);
+  });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', markResize);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      flushSettings();
+      running = false;
+      cancelAnimationFrame(rafId);
+      pointerList.length = 0;
+      gesture.reset();
+      if (inputMode === 'mic' || inputMode === 'requesting') {
+        var wasMic = inputMode === 'mic';
+        stopMic();
+        if (wasMic) micStoppedInBackground = true;
+      }
+    } else if (!running) {
+      running = true;
+      lastTs = 0;
+      winStart = 0;
+      needsResize = true;
+      canvasCleared = true;                     // a held (frozen) frame may need redrawing
+      rafId = requestAnimationFrame(frame);
+      if (micStoppedInBackground) {
+        micStoppedInBackground = false;
+        showToast('PULSAR LIVE released the microphone while it was in the background. Tap Start mic to listen again.', 'info', 6500);
+      }
+    }
+  });
+  window.addEventListener('pagehide', function () {
+    flushSettings();
+    pointerList.length = 0;
+    gesture.reset();
+    if (inputMode !== 'demo') stopMic();
+  });
+  document.addEventListener('fullscreenchange', markResize);
+  document.addEventListener('webkitfullscreenchange', markResize);
+
+  /* =====================================================================
+     Offline use (service worker). Registered only over HTTPS or on
+     localhost; opened from a file, the page works as before without it.
+     A new version never takes over by itself: the person chooses Update.
+     ===================================================================== */
+  var offlineNote = $('offlineNote'), updateBtn = $('updateBtn');
+  var updateBar = $('updateBar'), updateNow = $('updateNow'), updateLater = $('updateLater');
+  var offlineState = 'off', waitingWorker = null, updateRequested = false;
+  var OFFLINE_TEXT = {
+    off: 'Offline use needs the page served over HTTPS, or from localhost. Opened from a file or plain HTTP, PULSAR LIVE works as usual but isn’t saved for offline use.',
+    setup: 'Saving PULSAR LIVE for offline use…',
+    ready: 'PULSAR LIVE is saved in this browser for offline use. Your scenes and settings stay in this browser’s storage.',
+    update: 'A new version is ready. Updating reloads the page, so a running microphone stops and needs starting again. Your scenes and settings are kept.',
+    error: 'Offline use couldn’t be set up in this browser. Everything else works as usual.'
+  };
+  function offlineSupported() {
+    var h = location.hostname, local = h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+    return 'serviceWorker' in navigator && window.isSecureContext !== false &&
+      (location.protocol === 'https:' || (location.protocol === 'http:' && local));
+  }
+  function updateOfflineUI() {
+    offlineNote.textContent = OFFLINE_TEXT[offlineState];
+    updateBtn.hidden = offlineState !== 'update';
+  }
+  function offerUpdate(worker) {
+    waitingWorker = worker;
+    offlineState = 'update';
+    updateOfflineUI();
+    updateBar.hidden = false;
+  }
+  // The only path to a reload: the new worker takes over, then
+  // controllerchange reloads because updateRequested is set.
+  function applyUpdate() {
+    if (!waitingWorker) return;
+    // Another tab may already have applied it: this page is then controlled by
+    // the new version (or the offer is stale), so reloading is all that's left.
+    if (waitingWorker.state === 'activated' || waitingWorker.state === 'redundant') { reloadForUpdate(); return; }
+    updateRequested = true;
+    updateBar.hidden = true;
+    try { waitingWorker.postMessage({ type: 'SKIP_WAITING' }); } catch (e) { updateRequested = false; }
+  }
+  function reloadForUpdate() { location.reload(); }
+  function addHeadLink(rel, href) {
+    var l = document.createElement('link');
+    l.rel = rel;
+    l.href = href;
+    document.head.appendChild(l);
+  }
+  function setupOffline() {
+    if (!offlineSupported()) { offlineState = 'off'; updateOfflineUI(); return; }
+    // Linked here rather than in the markup, so a page opened from a file
+    // doesn't request files it can't use.
+    addHeadLink('manifest', 'manifest.webmanifest');
+    addHeadLink('apple-touch-icon', 'icons/apple-touch-icon.png');
+    var sw = navigator.serviceWorker;
+    offlineState = sw.controller ? 'ready' : 'setup';
+    updateOfflineUI();
+    sw.addEventListener('controllerchange', function () {
+      // The first install also changes the controller; that must not reload.
+      if (updateRequested) { updateRequested = false; reloadForUpdate(); }
+    });
+    sw.register('sw.js').then(function (reg) {
+      if (reg.waiting && sw.controller) offerUpdate(reg.waiting);
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          // With a controller this is an update; without one, the first install.
+          if (nw.state === 'installed' && sw.controller) offerUpdate(nw);
+          else if (nw.state === 'redundant' && offlineState === 'setup') { offlineState = 'error'; updateOfflineUI(); }
+        });
+      });
+      sw.ready.then(function () { if (offlineState === 'setup') { offlineState = 'ready'; updateOfflineUI(); } });
+    }, function () { offlineState = 'error'; updateOfflineUI(); });
+  }
+  updateNow.addEventListener('click', function () { haptic('ui'); applyUpdate(); });
+  updateBtn.addEventListener('click', function () { haptic('ui'); applyUpdate(); });
+  updateLater.addEventListener('click', function () { haptic('ui'); updateBar.hidden = true; wake(); });
+
+  /* =====================================================================
+     Start
+     ===================================================================== */
+  buildSpark();
+  buildSprites(palNow);
+  promoteAtlas();
+  setAccentVars(palNow);
+  resize();
+  updateHome(0, true);
+  vcx = homeX;
+  vcy = homeY;
+  Plasma.nodes(0);
+  setQuality(qLevel, true);
+  applyMotion();
+  if (modeObj.enter) modeObj.enter();
+  if ('inert' in sheet) sheet.inert = true;
+  buildSwatches();
+  renderScenes();
+  syncAllControls();
+  updateModeUI();
+  updateInputUI();
+  updateStorageNote();
+  updateHapticNote();
+  updateOfflineUI();
+  if (document.readyState === 'complete') setupOffline();
+  else window.addEventListener('load', setupOffline);
+  clearCanvas();
+  wake();
+  setTimeout(hideHint, 6500);
+  running = !document.hidden;
+  if (running) rafId = requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
