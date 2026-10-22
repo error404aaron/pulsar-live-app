@@ -10,7 +10,7 @@
 // - Activating deletes this app's caches from older builds.
 // - GET_BUILD (with a MessagePort) answers with BUILD, shown in Settings.
 'use strict';
-const BUILD = '39f0b407f5e29b';
+const BUILD = '6098abb195af3b';
 const PREFIX = 'pulsar-live-shell-';
 const CACHE = PREFIX + BUILD;
 const SHELL = [

@@ -989,7 +989,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.6</p>
+  <p class="perf" id="versionLine">Version 0.9.7</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -1270,6 +1270,7 @@ var PulsarScenes = (function () {
 var PulsarTouch = (function () {
   'use strict';
   var MIN_TRAVEL = 24;        // CSS px a pointer must move from where it went down to count as a drag
+  var MULTI_TRAVEL = 10;      // ... once two or more fingers are down, so short spreads and pinches count
   var PULSE_BASE = 0.6;       // one-finger release pulse strength at 100% touch strength
   var PULSE_MAX = 1;          // a one-finger pulse is never stronger than a tap's shockwave
   var MULTI_BASE = 1;         // two or more fingers: a tap's strength at 100% touch strength
@@ -1296,7 +1297,12 @@ var PulsarTouch = (function () {
     // The last gesture that earned a pulse: its finger count, the centre of its
     // lift points, and its first (a) and last (b) lift points.
     var last = { fingers: 0, x: 0, y: 0, ax: 0, ay: 0, bx: 0, by: 0 };
-    var minTravel2 = MIN_TRAVEL * MIN_TRAVEL;
+    var minTravel2 = MIN_TRAVEL * MIN_TRAVEL, multiTravel2 = MULTI_TRAVEL * MULTI_TRAVEL;
+    // Whether pointer i has moved far enough to count, for this gesture's finger count.
+    function farEnough(i) {
+      var dx = lx[i] - x0[i], dy = ly[i] - y0[i];
+      return dx * dx + dy * dy >= (peak >= 2 ? multiTravel2 : minTravel2);
+    }
 
     function find(id) {
       for (var i = 0; i < n; i++) if (ids[i] === id) return i;
@@ -1326,9 +1332,7 @@ var PulsarTouch = (function () {
         var i = find(id);
         if (i < 0) return;
         lx[i] = x; ly[i] = y;
-        if (far[i]) return;
-        var dx = x - x0[i], dy = y - y0[i];
-        if (dx * dx + dy * dy >= minTravel2) far[i] = 1;
+        if (!far[i] && farEnough(i)) far[i] = 1;
       },
       // A normal release. Returns true only when this was the last pointer and
       // the gesture earned a pulse: some pointer dragged, nothing interrupted
@@ -1336,7 +1340,7 @@ var PulsarTouch = (function () {
       up: function (id, isTap) {
         var i = find(id);
         if (i < 0) return false;
-        if (far[i]) dragged = true;
+        if (far[i] || farEnough(i)) dragged = true;
         var ux = lx[i], uy = ly[i];
         if (lifts === 0) { fx = ux; fy = uy; }
         sumX += ux; sumY += uy; lifts++;
@@ -1367,7 +1371,7 @@ var PulsarTouch = (function () {
     };
   }
 
-  return { MIN_TRAVEL: MIN_TRAVEL, PULSE_BASE: PULSE_BASE, PULSE_MAX: PULSE_MAX, MULTI_BASE: MULTI_BASE, MULTI_MAX: MULTI_MAX,
+  return { MIN_TRAVEL: MIN_TRAVEL, MULTI_TRAVEL: MULTI_TRAVEL, PULSE_BASE: PULSE_BASE, PULSE_MAX: PULSE_MAX, MULTI_BASE: MULTI_BASE, MULTI_MAX: MULTI_MAX,
     releaseStrength: releaseStrength, createGesture: createGesture };
 })();
 </script>
