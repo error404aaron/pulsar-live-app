@@ -936,7 +936,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   </label>
   <p class="note">How hard dragging fingers push, pull and swirl particles, in every mode. 0% disables drag forces. Geometry twist and pinch remain active, and taps still send shockwaves.</p>
   <div class="switch-row">
-    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. A two-finger drag sends a bigger one, with a second ring and sparks. Scales with touch strength.</small></span>
+    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. A two-finger drag sends a bigger one, with a flash, a second ring and sparks. Scales with touch strength.</small></span>
     <button class="switch" id="releasePulse" type="button" role="switch" aria-checked="false" aria-label="Release pulse"></button>
   </div>
 
@@ -989,7 +989,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.4</p>
+  <p class="perf" id="versionLine">Version 0.9.5</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -1892,6 +1892,8 @@ var PulsarMotion = (function () {
   var swx = new Float32Array(SWMAX), swy = new Float32Array(SWMAX), swr = new Float32Array(SWMAX);
   var sws = new Float32Array(SWMAX), swl = new Float32Array(SWMAX);
   var swc = new Uint8Array(SWMAX);
+  // The multi-finger release flash: a bright bloom that grows and fades.
+  var flashX = 0, flashY = 0, flashS = 0, flashL = 0;
   var aw = new Uint8Array(SWMAX);
   var awN = 0, swNext = 0, shockBand = 1, shockBandIn = 1;
 
@@ -2484,6 +2486,7 @@ var PulsarMotion = (function () {
     swc[k] = (Math.random() * STEPS) | 0;
   }
   function updateShockwaves(dt) {
+    if (flashL > 0) flashL = Math.max(0, flashL - dt / 0.5);
     awN = 0;
     shockBand = S * 0.085;
     shockBandIn = shockBand * 1.6;
@@ -2839,6 +2842,11 @@ var PulsarMotion = (function () {
       ctx.beginPath();
       ctx.arc(swx[k], swy[k], swr[k], 0, TAU);
       ctx.stroke();
+    }
+    if (flashL > 0) {
+      var fr = S * (0.1 + 0.32 * (1 - flashL));
+      ctx.globalAlpha = clamp(flashL * flashL * flashS, 0, 1);
+      ctx.drawImage(coreSprite, flashX - fr, flashY - fr, fr + fr, fr + fr);
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -3640,6 +3648,9 @@ var PulsarMotion = (function () {
       if (dx * dx + dy * dy < R2) spark[i] = g;
     }
     if (modeObj.onTap) modeObj.onTap(x, y, g);
+    // A bright flash, so the bigger release is unmistakable. Its brightness
+    // follows s, which already includes the burst and reduced-motion limits.
+    flashX = x; flashY = y; flashS = g; flashL = 1;
     haptic('burst');
   }
   canvas.addEventListener('pointerdown', function (e) {
@@ -3723,7 +3734,9 @@ var PulsarMotion = (function () {
     var up = gesture.up, cancel = gesture.cancel, interrupt = gesture.interrupt, reset = gesture.reset;
     gesture.up = function (id, tap) {
       var r = up(id, tap), f = r ? gesture.lastRelease().fingers : 0;
-      log('  gesture.up id=' + id + ' tap=' + tap + ' -> ' + (r ? 'PULSE (' + f + ' finger' + (f === 1 ? '' : 's') + ')' : 'no pulse') +
+      log('  gesture.up id=' + id + ' tap=' + tap + ' -> ' + (r ? 'PULSE (' + f + ' finger' + (f === 1 ? '' : 's') + ', strength ' +
+        (PulsarTouch.releaseStrength(settings, f) * motion.burst).toFixed(2) + ', bursts ' + Math.round(motion.burst * 100) + '%' +
+        (motion.reduced ? ', reduced motion' : '') + ')' : 'no pulse') +
         (r && !(PulsarTouch.releaseStrength(settings, f) > 0) ? ' (release pulse off)' : ''));
       return r;
     };
@@ -3877,7 +3890,9 @@ var PulsarMotion = (function () {
     showToast('Tuning reset to defaults. Saved scenes and motion settings were kept.', 'ok', 2600);
   });
   // Touching the controls mid-drag ends that drag's chance of a release pulse.
-  dockInner.addEventListener('pointerdown', function () { gesture.interrupt(); wake(); resumeAudioOnGesture(); });
+  // A finger resting on the dock doesn't cancel a drag's release pulse; a
+  // control that opens the settings panel still does (openSheet interrupts).
+  dockInner.addEventListener('pointerdown', function () { wake(); resumeAudioOnGesture(); });
   sheet.addEventListener('pointerdown', function () { gesture.interrupt(); wake(); resumeAudioOnGesture(); });
   window.addEventListener('keydown', function (e) {
     var tag = e.target && e.target.tagName;
