@@ -2,4 +2,4 @@
 
 Published build of PULSAR LIVE, served by GitHub Pages: https://error404aaron.github.io/pulsar-live-app/
 
-This repository holds only the app files, copied from commit c753499 of the private source repository. Edits belong in the source repository.
+This repository holds only the app files, copied from commit 7421ba4 of the private source repository (a rollback from c753499). Edits belong in the source repository.

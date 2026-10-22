@@ -8,9 +8,8 @@
 // - A new version waits. The page offers an Update button and sends
 //   SKIP_WAITING only when the person presses it, so nothing reloads mid-session.
 // - Activating deletes this app's caches from older builds.
-// - GET_BUILD (with a MessagePort) answers with BUILD, shown in Settings.
 'use strict';
-const BUILD = '5f112eaa615176';
+const BUILD = 'b47f89115161e0';
 const PREFIX = 'pulsar-live-shell-';
 const CACHE = PREFIX + BUILD;
 const SHELL = [
@@ -38,8 +37,6 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-  // The page shows which build it runs, so an update or rollback can be confirmed.
-  else if (event.data && event.data.type === 'GET_BUILD' && event.ports && event.ports[0]) event.ports[0].postMessage({ build: BUILD });
 });
 
 self.addEventListener('fetch', (event) => {
