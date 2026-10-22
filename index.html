@@ -973,7 +973,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.1</p>
+  <p class="perf" id="versionLine">Version 0.9.2</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -3250,7 +3250,7 @@ var PulsarMotion = (function () {
   function updateSceneStore() {
     var p = library.persistence();
     sceneStore.textContent =
-      p === 'saved' ? 'Scenes are saved in this browser.'
+      p === 'saved' ? 'Scenes are saved in this browser. Browsers can clear saved data (Safari may after about 7 days without a visit, unless PULSAR LIVE is on the Home Screen), so use Export to keep a copy of scenes you care about.'
       : p === 'unsaved' ? 'This browser’s storage is full, so recent scene changes last only for this session. Export your scenes to keep them.'
       : p === 'protected' ? 'Saved scenes in this browser couldn’t be read, so they were left untouched. New scenes last only for this session; export them to keep them.'
       : 'This browser isn’t allowing saved data, so scenes last only for this session. Export them to keep them.';
