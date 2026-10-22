@@ -989,7 +989,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.7</p>
+  <p class="perf" id="versionLine">Version 0.9.8</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -1543,7 +1543,7 @@ var PulsarMotion = (function () {
   var DEFAULTS = {
     mode: 'vortex', palette: 'neon', density: 500, energy: 0.8, sensitivity: 1,
     speed: 1, trail: 0.55, glow: 0.8, smoothing: 0.5, symmetry: 6,
-    autoQuality: true, fpsCap: 60, haptics: 'touch', touchStrength: 1, releasePulse: false,
+    autoQuality: true, fpsCap: 60, haptics: 'touch', touchStrength: 1, releasePulse: true,
     bassGain: 1, midGain: 1, trebleGain: 1, noiseGate: 0, profile: 'balanced', intensity: 1,
     motion: 'system', bursts: 1
   };
@@ -3693,6 +3693,7 @@ var PulsarMotion = (function () {
   // that had stopped), with a streak. A slow lift gives only a soft ring.
   // Two or more, a twin burst: a ring, flash and sparks at the first and last
   // lift points, joined by an arc that lights the particles along it.
+  var touchLog = null;                  // set by the opt-in touch log (?debug=touch)
   function releasePulse(rel, s, vx0, vy0) {
     if (rel.fingers >= 2) { twinBurst(rel, s); return; }
     var x = rel.bx, y = rel.by, k = s / PulsarTouch.PULSE_BASE;   // 1 at 100% touch strength
@@ -3700,6 +3701,7 @@ var PulsarMotion = (function () {
     if (sp > 3000) { vx0 *= 3000 / sp; vy0 *= 3000 / sp; sp = 3000; }
     var q = sp / 1800; if (q > 1) q = 1;                            // 0 still, 1 a fast flick
     addShockwave(x, y, s * (0.35 + 0.4 * q));
+    if (touchLog) touchLog('  fling: lift speed ' + Math.round(sp) + ' px/s' + (q < 0.08 ? ' (too slow or stopped: soft ring only)' : ', throw ' + Math.round(q * 100) + '%'));
     if (q < 0.08) return;
     var dx0 = vx0 / sp, dy0 = vy0 / sp;
     var R = S * 0.22, R2 = R * R, g = k < 1 ? k : 1;
@@ -3830,6 +3832,7 @@ var PulsarMotion = (function () {
     gesture.cancel = function (id) { log('  gesture.cancel id=' + id + ' (interrupts if a finger remains)'); return cancel(id); };
     gesture.interrupt = function () { if (gesture.active()) log('  gesture.interrupt (UI took over)'); return interrupt(); };
     gesture.reset = function () { log('  gesture.reset'); return reset(); };
+    touchLog = log;
     log('touch log on; release pulse ' + (settings.releasePulse ? 'on' : 'OFF') + ', touch strength ' + Math.round(settings.touchStrength * 100) + '%');
   })();
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
