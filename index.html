@@ -936,7 +936,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   </label>
   <p class="note">How hard dragging fingers push, pull and swirl particles, in every mode. 0% disables drag forces. Geometry twist and pinch remain active, and taps still send shockwaves.</p>
   <div class="switch-row">
-    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. Scales with touch strength.</small></span>
+    <span>Release pulse<small>Sends a shockwave when you lift your last finger after a drag. After one finger it flings the field the way you were moving; after two, it bursts at both fingertips, joined by an arc. Scales with touch strength.</small></span>
     <button class="switch" id="releasePulse" type="button" role="switch" aria-checked="false" aria-label="Release pulse"></button>
   </div>
 
@@ -989,7 +989,7 @@ body.reduce-motion .toast, body.reduce-motion .hint { transition-duration: 0.01m
   <p class="note" id="offlineNote" role="status" aria-live="polite"></p>
   <!-- The version is part of the page, so it shows on every copy, with or without the
        service worker. Change it with each published release. -->
-  <p class="perf" id="versionLine">Version 0.9.3</p>
+  <p class="perf" id="versionLine">Version 0.9.6</p>
   <p class="perf" id="buildLine" hidden></p>
   <button class="chip-btn" id="updateBtn" type="button" hidden>Update now</button>
 
@@ -1270,13 +1270,17 @@ var PulsarScenes = (function () {
 var PulsarTouch = (function () {
   'use strict';
   var MIN_TRAVEL = 24;        // CSS px a pointer must move from where it went down to count as a drag
-  var PULSE_BASE = 0.6;       // release pulse strength at 100% touch strength
-  var PULSE_MAX = 1;          // never stronger than a tap's shockwave
+  var PULSE_BASE = 0.6;       // one-finger release pulse strength at 100% touch strength
+  var PULSE_MAX = 1;          // a one-finger pulse is never stronger than a tap's shockwave
+  var MULTI_BASE = 1;         // two or more fingers: a tap's strength at 100% touch strength
+  var MULTI_MAX = 1.5;        // ... and up to 1.5x a tap at 200%
 
-  // Shockwave strength for a release pulse, or 0 for none.
-  function releaseStrength(settings) {
+  // Shockwave strength for a release pulse, or 0 for none. fingers: the most
+  // fingers down at once during the gesture (1 if omitted).
+  function releaseStrength(settings, fingers) {
     if (!settings.releasePulse || !(settings.touchStrength > 0)) return 0;
-    return Math.min(PULSE_MAX, PULSE_BASE * settings.touchStrength);
+    var multi = fingers >= 2;
+    return Math.min(multi ? MULTI_MAX : PULSE_MAX, (multi ? MULTI_BASE : PULSE_BASE) * settings.touchStrength);
   }
 
   // Tracks one gesture: from the first pointer down until the last pointer is
@@ -1284,8 +1288,14 @@ var PulsarTouch = (function () {
   function createGesture(maxPointers) {
     var ids = new Array(maxPointers);
     var x0 = new Float64Array(maxPointers), y0 = new Float64Array(maxPointers);
+    var lx = new Float64Array(maxPointers), ly = new Float64Array(maxPointers);   // latest positions
     var far = new Uint8Array(maxPointers);
     var n = 0, dragged = false, interrupted = false;
+    // Per gesture: the most fingers down at once, and the sum of lift points.
+    var peak = 0, sumX = 0, sumY = 0, lifts = 0, fx = 0, fy = 0;
+    // The last gesture that earned a pulse: its finger count, the centre of its
+    // lift points, and its first (a) and last (b) lift points.
+    var last = { fingers: 0, x: 0, y: 0, ax: 0, ay: 0, bx: 0, by: 0 };
     var minTravel2 = MIN_TRAVEL * MIN_TRAVEL;
 
     function find(id) {
@@ -1294,25 +1304,29 @@ var PulsarTouch = (function () {
     }
     function drop(i) {
       n--;
-      ids[i] = ids[n]; x0[i] = x0[n]; y0[i] = y0[n]; far[i] = far[n];
+      ids[i] = ids[n]; x0[i] = x0[n]; y0[i] = y0[n]; lx[i] = lx[n]; ly[i] = ly[n]; far[i] = far[n];
       ids[n] = undefined;
     }
     function clear() {
       for (var i = 0; i < n; i++) ids[i] = undefined;
       n = 0; dragged = false; interrupted = false;
+      peak = 0; sumX = 0; sumY = 0; lifts = 0;
     }
     return {
       // Returns false when the pointer isn't tracked (already down, or full).
       down: function (id, x, y) {
-        if (n === 0) { dragged = false; interrupted = false; }
+        if (n === 0) { dragged = false; interrupted = false; peak = 0; sumX = 0; sumY = 0; lifts = 0; }
         if (n >= maxPointers || find(id) >= 0) return false;
-        ids[n] = id; x0[n] = x; y0[n] = y; far[n] = 0;
+        ids[n] = id; x0[n] = x; y0[n] = y; lx[n] = x; ly[n] = y; far[n] = 0;
         n++;
+        if (n > peak) peak = n;
         return true;
       },
       move: function (id, x, y) {
         var i = find(id);
-        if (i < 0 || far[i]) return;
+        if (i < 0) return;
+        lx[i] = x; ly[i] = y;
+        if (far[i]) return;
         var dx = x - x0[i], dy = y - y0[i];
         if (dx * dx + dy * dy >= minTravel2) far[i] = 1;
       },
@@ -1323,9 +1337,16 @@ var PulsarTouch = (function () {
         var i = find(id);
         if (i < 0) return false;
         if (far[i]) dragged = true;
+        var ux = lx[i], uy = ly[i];
+        if (lifts === 0) { fx = ux; fy = uy; }
+        sumX += ux; sumY += uy; lifts++;
         drop(i);
         if (n > 0) return false;
         var earned = dragged && !interrupted && !isTap;
+        if (earned) {
+          last.fingers = peak; last.x = sumX / lifts; last.y = sumY / lifts;
+          last.ax = fx; last.ay = fy; last.bx = ux; last.by = uy;
+        }
         clear();
         return earned;
       },
@@ -1340,11 +1361,14 @@ var PulsarTouch = (function () {
       interrupt: function () { if (n > 0) interrupted = true; },
       // The page was hidden: forget every pointer.
       reset: clear,
-      active: function () { return n; }
+      active: function () { return n; },
+      // After up() returned true: { fingers, x, y, ax, ay, bx, by } for that gesture (read it, don't keep it).
+      lastRelease: function () { return last; }
     };
   }
 
-  return { MIN_TRAVEL: MIN_TRAVEL, PULSE_BASE: PULSE_BASE, PULSE_MAX: PULSE_MAX, releaseStrength: releaseStrength, createGesture: createGesture };
+  return { MIN_TRAVEL: MIN_TRAVEL, PULSE_BASE: PULSE_BASE, PULSE_MAX: PULSE_MAX, MULTI_BASE: MULTI_BASE, MULTI_MAX: MULTI_MAX,
+    releaseStrength: releaseStrength, createGesture: createGesture };
 })();
 </script>
 <script id="audio-model">
@@ -1873,6 +1897,12 @@ var PulsarMotion = (function () {
   var swx = new Float32Array(SWMAX), swy = new Float32Array(SWMAX), swr = new Float32Array(SWMAX);
   var sws = new Float32Array(SWMAX), swl = new Float32Array(SWMAX);
   var swc = new Uint8Array(SWMAX);
+  // Release effects. Fling (one finger): a streak that shoots off in the
+  // release direction. Twin burst (two or more): a flash at two lift points
+  // joined by a jagged arc. L is the remaining life (1 to 0), S the brightness.
+  var flingX = 0, flingY = 0, flingDX = 0, flingDY = 0, flingLen = 0, flingS = 0, flingL = 0;
+  var twAX = 0, twAY = 0, twBX = 0, twBY = 0, twS = 0, twL = 0, twArc = false;
+  var twOff = new Float32Array(9);
   var aw = new Uint8Array(SWMAX);
   var awN = 0, swNext = 0, shockBand = 1, shockBandIn = 1;
 
@@ -2465,6 +2495,8 @@ var PulsarMotion = (function () {
     swc[k] = (Math.random() * STEPS) | 0;
   }
   function updateShockwaves(dt) {
+    if (flingL > 0) flingL = Math.max(0, flingL - dt / 0.55);
+    if (twL > 0) twL = Math.max(0, twL - dt / 0.6);
     awN = 0;
     shockBand = S * 0.085;
     shockBandIn = shockBand * 1.6;
@@ -2821,8 +2853,52 @@ var PulsarMotion = (function () {
       ctx.arc(swx[k], swy[k], swr[k], 0, TAU);
       ctx.stroke();
     }
+    if (flingL > 0) drawFling();
+    if (twL > 0) drawTwin();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // The fling streak: a head that eases out along the release direction,
+  // with a fading tail behind it (a wide faint pass, then a bright core).
+  function drawFling() {
+    var t = 1 - flingL, e = 1 - (1 - t) * (1 - t) * (1 - t);
+    var hx = flingX + flingDX * flingLen * e, hy = flingY + flingDY * flingLen * e;
+    var tb = e - 0.5 < 0 ? 0 : e - 0.5;
+    var tx = flingX + flingDX * flingLen * tb, ty = flingY + flingDY * flingLen * tb;
+    var a = flingL * flingS, w = (1.4 + 3.6 * flingL) * sizeScale;
+    ctx.strokeStyle = palCSS[STEPS - 2];
+    ctx.globalAlpha = clamp(a * 0.3, 0, 1);
+    ctx.lineWidth = w * 3.2;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.globalAlpha = clamp(a, 0, 1);
+    ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    var hr = S * (0.035 + 0.03 * flingL);
+    ctx.drawImage(coreSprite, hx - hr, hy - hr, hr + hr, hr + hr);
+  }
+  // The twin burst: a flash at each lift point and, when they're apart, a
+  // jagged arc between them (fixed offsets per burst, so it doesn't flicker).
+  function drawTwin() {
+    var a = twL * twS, fr = S * (0.06 + 0.2 * (1 - twL));
+    ctx.globalAlpha = clamp(twL * twL * twS, 0, 1);
+    ctx.drawImage(coreSprite, twAX - fr, twAY - fr, fr + fr, fr + fr);
+    ctx.drawImage(coreSprite, twBX - fr, twBY - fr, fr + fr, fr + fr);
+    if (!twArc) return;
+    var dx = twBX - twAX, dy = twBY - twAY, d = Math.sqrt(dx * dx + dy * dy);
+    var nx = -dy / d, ny = dx / d, amp = d * 0.07 * (0.5 + 0.5 * twL);
+    ctx.strokeStyle = palCSS[STEPS - 1];
+    for (var pass = 0; pass < 2; pass++) {
+      ctx.globalAlpha = clamp(pass ? a : a * 0.3, 0, 1);
+      ctx.lineWidth = (pass ? 1.6 + 2.4 * twL : 6 + 6 * twL) * sizeScale;
+      ctx.beginPath();
+      for (var j = 0; j <= 8; j++) {
+        var f = j / 8, o = twOff[j] * amp;
+        var x = twAX + dx * f + nx * o, y = twAY + dy * f + ny * o;
+        if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
   }
 
   function stepPalette(dt) {
@@ -3606,6 +3682,58 @@ var PulsarMotion = (function () {
     }
     if (modeObj.onTap) modeObj.onTap(x, y, g);
   }
+  // The release pulse. s is its strength, already including the burst and
+  // reduced-motion limits.
+  // One finger, a fling: lifting throws nearby particles the way the finger
+  // was moving, as fast as it was moving (vx0, vy0 in CSS px/s, 0 for a finger
+  // that had stopped), with a streak. A slow lift gives only a soft ring.
+  // Two or more, a twin burst: a ring, flash and sparks at the first and last
+  // lift points, joined by an arc that lights the particles along it.
+  function releasePulse(rel, s, vx0, vy0) {
+    if (rel.fingers >= 2) { twinBurst(rel, s); return; }
+    var x = rel.bx, y = rel.by, k = s / PulsarTouch.PULSE_BASE;   // 1 at 100% touch strength
+    var sp = Math.sqrt(vx0 * vx0 + vy0 * vy0);
+    if (sp > 3000) { vx0 *= 3000 / sp; vy0 *= 3000 / sp; sp = 3000; }
+    var q = sp / 1800; if (q > 1) q = 1;                            // 0 still, 1 a fast flick
+    addShockwave(x, y, s * (0.35 + 0.4 * q));
+    if (q < 0.08) return;
+    var dx0 = vx0 / sp, dy0 = vy0 / sp;
+    var R = S * 0.22, R2 = R * R, g = k < 1 ? k : 1;
+    for (var i = 0; i < N; i++) {
+      var dx = px[i] - x, dy = py[i] - y, d2 = dx * dx + dy * dy;
+      if (d2 >= R2) continue;
+      var fall = 1 - Math.sqrt(d2) / R, kick = sp * 0.85 * k * fall;
+      vx[i] += dx0 * kick;
+      vy[i] += dy0 * kick;
+      var sk = g * (0.4 + 0.6 * q) * fall;
+      if (sk > spark[i]) spark[i] = sk;
+    }
+    flingX = x; flingY = y; flingDX = dx0; flingDY = dy0;
+    flingLen = S * (0.2 + 0.55 * q); flingS = g * (0.5 + 0.5 * q); flingL = 1;
+    haptic('tap');
+  }
+  function twinBurst(rel, s) {
+    var g = s < 1 ? s : 1;
+    var ax = rel.ax, ay = rel.ay, bx = rel.bx, by = rel.by;
+    addShockwave(ax, ay, s);
+    addShockwave(bx, by, s);
+    var abx = bx - ax, aby = by - ay, ab2 = abx * abx + aby * aby;
+    var R = S * 0.14, R2 = R * R, W = S * 0.035, W2 = W * W;
+    for (var i = 0; i < N; i++) {
+      var dax = px[i] - ax, day = py[i] - ay, dbx = px[i] - bx, dby = py[i] - by;
+      var hit = dax * dax + day * day < R2 || dbx * dbx + dby * dby < R2;
+      if (!hit && ab2 > 0) {
+        var t = (dax * abx + day * aby) / ab2;
+        if (t > 0 && t < 1) { var ex = dax - abx * t, ey = day - aby * t; hit = ex * ex + ey * ey < W2; }
+      }
+      if (hit) spark[i] = g;
+    }
+    if (modeObj.onTap) { modeObj.onTap(ax, ay, g); modeObj.onTap(bx, by, g); }
+    twAX = ax; twAY = ay; twBX = bx; twBY = by; twS = g; twL = 1;
+    twArc = ab2 > S * S * 0.0036;                                     // farther apart than 6% of the screen
+    for (var j = 0; j < 9; j++) twOff[j] = j === 0 || j === 8 ? 0 : Math.random() * 2 - 1;
+    haptic('burst');
+  }
   canvas.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
@@ -3651,8 +3779,11 @@ var PulsarMotion = (function () {
       if (tap) onTap(p.x, p.y);
       // One pulse per completed drag, when the last finger lifts.
       if (gesture.up(e.pointerId, tap)) {
-        var ps = PulsarTouch.releaseStrength(settings) * motion.burst;
-        if (ps > 0 && !frozen) addShockwave(p.x, p.y, ps);
+        var rel = gesture.lastRelease();
+        var ps = PulsarTouch.releaseStrength(settings, rel.fingers) * motion.burst;
+        // The finger's speed at release; one that had stopped moving has none.
+        var fresh = (e.timeStamp || performance.now()) - p.t < 90;
+        if (ps > 0 && !frozen) releasePulse(rel, ps, fresh ? p.vx : 0, fresh ? p.vy : 0);
       }
     } else gesture.cancel(e.pointerId);
     try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
@@ -3684,7 +3815,14 @@ var PulsarMotion = (function () {
       document.addEventListener(t, function () { log(t); }, true);
     });
     var up = gesture.up, cancel = gesture.cancel, interrupt = gesture.interrupt, reset = gesture.reset;
-    gesture.up = function (id, tap) { var r = up(id, tap); log('  gesture.up id=' + id + ' tap=' + tap + ' -> ' + (r ? 'PULSE' : 'no pulse') + (r && !(PulsarTouch.releaseStrength(settings) > 0) ? ' (release pulse off)' : '')); return r; };
+    gesture.up = function (id, tap) {
+      var r = up(id, tap), f = r ? gesture.lastRelease().fingers : 0;
+      log('  gesture.up id=' + id + ' tap=' + tap + ' -> ' + (r ? 'PULSE (' + f + ' finger' + (f === 1 ? '' : 's') + ', strength ' +
+        (PulsarTouch.releaseStrength(settings, f) * motion.burst).toFixed(2) + ', bursts ' + Math.round(motion.burst * 100) + '%' +
+        (motion.reduced ? ', reduced motion' : '') + ')' : 'no pulse') +
+        (r && !(PulsarTouch.releaseStrength(settings, f) > 0) ? ' (release pulse off)' : ''));
+      return r;
+    };
     gesture.cancel = function (id) { log('  gesture.cancel id=' + id + ' (interrupts if a finger remains)'); return cancel(id); };
     gesture.interrupt = function () { if (gesture.active()) log('  gesture.interrupt (UI took over)'); return interrupt(); };
     gesture.reset = function () { log('  gesture.reset'); return reset(); };
@@ -3835,7 +3973,9 @@ var PulsarMotion = (function () {
     showToast('Tuning reset to defaults. Saved scenes and motion settings were kept.', 'ok', 2600);
   });
   // Touching the controls mid-drag ends that drag's chance of a release pulse.
-  dockInner.addEventListener('pointerdown', function () { gesture.interrupt(); wake(); resumeAudioOnGesture(); });
+  // A finger resting on the dock doesn't cancel a drag's release pulse; a
+  // control that opens the settings panel still does (openSheet interrupts).
+  dockInner.addEventListener('pointerdown', function () { wake(); resumeAudioOnGesture(); });
   sheet.addEventListener('pointerdown', function () { gesture.interrupt(); wake(); resumeAudioOnGesture(); });
   window.addEventListener('keydown', function (e) {
     var tag = e.target && e.target.tagName;
